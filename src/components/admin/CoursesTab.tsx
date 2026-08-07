@@ -497,7 +497,7 @@ export default function CoursesTab() {
                   <CustomSelect 
                     value={form.mentorId} 
                     onChange={v => setForm({ ...form, mentorId: v })}
-                    options={mentors.filter(m => m.mentorProfile?.[0]?.id).map(m => ({ value: String(m.mentorProfile[0].id), label: m.full_name }))}
+                    options={mentors.filter(m => m.mentorProfile?.[0]?.id).map(m => ({ value: String(m.mentorProfile![0].id), label: m.full_name }))}
                   />
                 </div>
               </div>
@@ -615,7 +615,7 @@ export default function CoursesTab() {
                   <CustomSelect 
                     value={editForm.mentorId} 
                     onChange={v => setEditForm({ ...editForm, mentorId: v })}
-                    options={mentors.filter(m => m.mentorProfile?.[0]?.id).map(m => ({ value: String(m.mentorProfile[0].id), label: m.full_name }))}
+                    options={mentors.filter(m => m.mentorProfile?.[0]?.id).map(m => ({ value: String(m.mentorProfile![0].id), label: m.full_name }))}
                   />
                 </div>
               </div>
