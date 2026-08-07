@@ -138,7 +138,7 @@ export default function LessonsTab() {
         </div>
         <button onClick={() => {
             setAddOpen(true);
-            setForm({ name: "", content: "", sectionId: "" });
+            setForm({ name: "", description: "", sectionId: "" });
             setVideoFile(null);
           }} style={{ padding: "0 18px", height: 40, background: "#3b82f6", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <AddCircleOutlineOutlined style={{ width: 18, height: 18 }} /> Dars qo'shish

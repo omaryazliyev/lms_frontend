@@ -33,7 +33,7 @@ type Course = {
 };
 
 type Category = { id: number; name: string };
-type User = { id: number; full_name: string; role: string; file: string | null };
+type User = { id: number; full_name: string; role: string; file: string | null; mentorProfile?: { id: number }[] };
 
 export default function CoursesTab() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -134,8 +134,8 @@ export default function CoursesTab() {
     setEditForm({
       name: course.name,
       description: course.description || "",
-      price: String(course.price || ""),
-      categoryId: String(course.category?.id || ""),
+      price: String(course.prise || ""),
+      categoryId: String(course.categories?.id || ""),
       mentorId: String(course.users?.[0]?.user?.id || ""), // Adjust depending on actual backend mentor link
       level: course.level || "BEGINNER",
     });
@@ -363,10 +363,10 @@ export default function CoursesTab() {
                       {course.level || "Beginner"}
                     </td>
                     <td style={{ padding: "16px", fontSize: 13, color: "#334155", fontWeight: 500 }}>
-                      {course.price ? course.price.toLocaleString() : "0"}
+                      {course.prise ? course.prise.toLocaleString() : "0"}
                     </td>
                     <td style={{ padding: "16px", fontSize: 13, color: "#334155" }}>
-                      {course.category?.name || "Kategoriyasiz"}
+                      {course.categories?.name || "Kategoriyasiz"}
                     </td>
                     <td style={{ padding: "16px" }}>
                       <span style={{ 
