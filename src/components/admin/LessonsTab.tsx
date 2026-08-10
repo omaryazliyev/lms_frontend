@@ -365,7 +365,7 @@ export default function LessonsTab() {
               </button>
             </div>
             <video 
-              src={playVideoUrl.startsWith('http') ? playVideoUrl : `http://localhost:3000/api/v1/uploads/videos/${playVideoUrl.split('/').pop()}`} 
+              src={playVideoUrl.startsWith('http') ? playVideoUrl : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/uploads/videos/${playVideoUrl.split('/').pop()}`} 
               controls 
               autoPlay 
               style={{ width: "100%", maxHeight: "80vh", display: "block" }} 

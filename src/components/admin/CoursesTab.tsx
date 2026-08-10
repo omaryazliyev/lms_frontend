@@ -343,7 +343,7 @@ export default function CoursesTab() {
                     <td style={{ padding: "16px" }}>
                       <div style={{ width: 56, height: 36, borderRadius: 6, background: "linear-gradient(135deg, #6366f1, #a855f7)", overflow: "hidden" }}>
                         {course.banner ? (
-                           <img src={`http://localhost:3000/api/v1/uploads/images/${course.banner}`} alt="banner" style={{width: '100%', height: '100%', objectFit: 'cover'}} onError={(e: any) => e.target.style.display = 'none'} />
+                           <img src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/uploads/images/${course.banner}`} alt="banner" style={{width: '100%', height: '100%', objectFit: 'cover'}} onError={(e: any) => e.target.style.display = 'none'} />
                         ) : null}
                       </div>
                     </td>
@@ -679,7 +679,7 @@ export default function CoursesTab() {
 
               <div style={{ width: "100%", height: 240, borderRadius: 12, background: "linear-gradient(135deg, #6366f1, #3b82f6, #a855f7)", overflow: "hidden", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {viewCourse.banner ? (
-                  <img src={`http://localhost:3000/api/v1/uploads/images/${viewCourse.banner}`} alt="banner" style={{width: '100%', height: '100%', objectFit: 'cover'}} onError={(e: any) => e.target.style.display = 'none'} />
+                  <img src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/uploads/images/${viewCourse.banner}`} alt="banner" style={{width: '100%', height: '100%', objectFit: 'cover'}} onError={(e: any) => e.target.style.display = 'none'} />
                 ) : (
                    <span style={{color: '#fff', fontWeight: 600}}>Banner rasm</span>
                 )}
