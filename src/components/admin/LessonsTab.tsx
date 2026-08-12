@@ -20,14 +20,20 @@ type Lesson = {
   description: string;
   file: string | null;
   create_at: string;
-  sections: { id: number; name: string; courses: { id: number; name: string } };
+  sections: { id: number; name: string; course: { id: number; name: string } };
 };
 
 import LessonDetails from "./LessonDetails";
 
-type Section = { id: number; name: string; courses: { name: string } };
+type Section = { id: number; name: string; course: { name: string } };
 
-export default function LessonsTab() {
+type Props = {
+  course?: { id: number; name: string };
+  section?: { id: number; name: string };
+  onBack?: () => void;
+};
+
+export default function LessonsTab({ course, section, onBack }: Props) {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
@@ -42,7 +48,7 @@ export default function LessonsTab() {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [playVideoUrl, setPlayVideoUrl] = useState<string | null>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", sectionId: "" });
+  const [form, setForm] = useState({ name: "", description: "", sectionId: section ? section.id.toString() : "" });
   const [videoFile, setVideoFile] = useState<File | null>(null);
   
   const [editRow, setEditRow] = useState<Lesson | null>(null);
@@ -66,10 +72,15 @@ export default function LessonsTab() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const filtered = lessons.filter(l => l.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = lessons
+    .filter(l => l.name.toLowerCase().includes(search.toLowerCase()))
+    .filter(l => section ? l.sections?.id === section.id : true);
 
   const handleAdd = async () => {
-    if (!form.name || !form.sectionId) return;
+    if (!form.name || !form.sectionId || !videoFile) {
+      alert("Iltimos barcha maydonlarni to'ldiring va fayl yuklang");
+      return;
+    }
     try {
       const formData = new FormData();
       formData.append("name", form.name);
@@ -127,127 +138,123 @@ export default function LessonsTab() {
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", margin: 0 }}>Darslar</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 13, color: "#94a3b8" }}>
-            <span>Kurslar</span>
+            <span style={{ cursor: onBack ? "pointer" : "default", color: onBack ? "#3b82f6" : "inherit" }} onClick={() => onBack && onBack()}>
+              Kurslar
+            </span>
             <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-            <span>Frontend dasturlash</span>
-            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-            <span>Bo'limlar</span>
+            {course ? (
+              <>
+                <span style={{ color: "#475569", fontWeight: 500 }}>{course.name}</span>
+                <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+              </>
+            ) : null}
+            <span style={{ cursor: onBack ? "pointer" : "default", color: onBack ? "#3b82f6" : "inherit" }} onClick={onBack}>
+              Bo'limlar
+            </span>
             <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
             <span style={{ color: "#475569", fontWeight: 500 }}>Darslar</span>
           </div>
         </div>
-        <button onClick={() => {
-            setAddOpen(true);
-            setForm({ name: "", description: "", sectionId: "" });
-            setVideoFile(null);
-          }} style={{ padding: "0 18px", height: 40, background: "#3b82f6", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        <button onClick={() => { setAddOpen(true); setForm({ name: "", description: "", sectionId: section ? section.id.toString() : "" }); setVideoFile(null); }} style={{ padding: "0 18px", height: 40, background: "#3b82f6", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <AddCircleOutlineOutlined style={{ width: 18, height: 18 }} /> Dars qo'shish
         </button>
       </div>
 
       <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1000 }}>
-            <thead>
-              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", borderTop: "1px solid #e2e8f0" }}>
-                <th style={{ padding: "14px 20px", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>Biriktirilgan kurs <FilterListOutlined style={{ width: 16, height: 16, color: "#94a3b8" }} /></div>
-                </th>
-                <th style={{ padding: "14px 20px", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>Dars mavzusi <FilterListOutlined style={{ width: 16, height: 16, color: "#94a3b8" }} /></div>
-                </th>
-                <th style={{ padding: "14px 20px", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#0f172a", width: "30%" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>Dars haqida <FilterListOutlined style={{ width: 16, height: 16, color: "#94a3b8" }} /></div>
-                </th>
-                <th style={{ padding: "14px 20px", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>Dars video fayli <FilterListOutlined style={{ width: 16, height: 16, color: "#94a3b8" }} /></div>
-                </th>
-                <th style={{ padding: "14px 20px", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>Materiallar</th>
-                <th style={{ padding: "14px 20px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>Amallar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={6} style={{ padding: 40, textAlign: "center" }}><CircularProgress size={24} /></td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>Ma'lumot topilmadi.</td></tr>
-              ) : (
-                filtered.slice((page - 1) * perPage, page * perPage).map((row) => (
-                  <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "16px 20px", fontSize: 13, fontWeight: 500, color: "#475569" }}>{row.sections?.courses?.name || "Noma'lum kurs"}</td>
-                    <td style={{ padding: "16px 20px", fontSize: 13, fontWeight: 500, color: "#475569" }}>{row.name}</td>
-                    <td style={{ padding: "16px 20px", fontSize: 13, color: "#475569", lineHeight: 1.5 }}>{row.description}</td>
-                    <td style={{ padding: "16px 20px" }}>
-                      {row.file ? (
-                        <div onClick={() => setPlayVideoUrl(row.file!)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "#f0fdf4", color: "#16a34a", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                          <PlayCircleFilledWhiteOutlined style={{ width: 16, height: 16 }} /> Video
-                        </div>
-                      ) : (
-                        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "#f8fafc", color: "#94a3b8", borderRadius: 8, fontSize: 12, fontWeight: 600 }}>
-                          <PlayCircleFilledWhiteOutlined style={{ width: 16, height: 16 }} /> Video yo'q
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: "16px 20px" }}>
-                      <button onClick={() => setSelectedLesson(row)} style={{ padding: "6px 16px", height: 32, background: "#3b82f6", color: "#fff", border: "none", borderRadius: 16, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                        Biriktirish
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 800 }}>
+          <thead>
+            <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", borderTop: "1px solid #e2e8f0" }}>
+              <th style={{ padding: "14px 24px", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Biriktirilgan kurs</th>
+              <th style={{ padding: "14px 24px", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Dars mavzusi</th>
+              <th style={{ padding: "14px 24px", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#0f172a", width: "25%" }}>Dars haqida</th>
+              <th style={{ padding: "14px 24px", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Dars video fayli</th>
+              <th style={{ padding: "14px 24px", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Materiallar</th>
+              <th style={{ padding: "14px 24px", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Amallar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={6} style={{ padding: 40, textAlign: "center" }}><CircularProgress size={24} /></td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>Ma'lumot topilmadi.</td></tr>
+            ) : (
+              filtered.slice((page - 1) * perPage, page * perPage).map((row) => (
+                <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: "18px 24px", fontSize: 13, color: "#475569" }}>
+                    {row.sections?.course?.name || "-"}
+                  </td>
+                  <td style={{ padding: "18px 24px", fontSize: 14, fontWeight: 500, color: "#0f172a" }}>{row.name}</td>
+                  <td style={{ padding: "18px 24px", fontSize: 13, color: "#475569" }}>{row.description}</td>
+                  <td style={{ padding: "18px 24px" }}>
+                    {row.file ? (
+                      <button onClick={() => setPlayVideoUrl(row.file)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "#eff6ff", color: "#3b82f6", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                        <PlayCircleFilledWhiteOutlined style={{ width: 16, height: 16 }} /> Video
                       </button>
-                    </td>
-                    <td style={{ padding: "16px 20px", textAlign: "right" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-                        <button onClick={() => { setEditRow(row); setEditForm({ name: row.name, description: row.description, sectionId: row.sections?.id?.toString() }); setVideoFile(null); setEditOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><EditOutlined style={{ width: 16, height: 16 }} /></button>
-                        <button onClick={() => { setDeleteTargetId(row.id); setDeleteOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><DeleteOutlineOutlined style={{ width: 16, height: 16 }} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 13, color: "#475569" }}>
-            <span>Sahifada 0-10 gacha. Umumiy 2ta</span>
-            <button style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "#475569", fontWeight: 500, cursor: "pointer" }}>
-              <div style={{ width: 24, height: 24, background: "#16a34a", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-                <DownloadOutlined style={{ width: 14, height: 14 }} />
-              </div>
-              (2) Yuklab olish .XLS
-            </button>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13, color: "#475569" }}>
-            <span>Bir sahifada: 10 <span style={{fontSize: 10}}>▼</span></span>
-            <div style={{ display: "flex", gap: 4 }}>
-              <button style={{ width: 28, height: 28, background: "none", border: "none", cursor: "pointer" }}>1</button>
-              <button style={{ width: 28, height: 28, background: "none", border: "none", cursor: "pointer" }}>2</button>
-              <button style={{ width: 28, height: 28, background: "none", border: "none", cursor: "pointer" }}>3</button>
-              <span>...</span>
-              <button style={{ width: 28, height: 28, background: "none", border: "none", cursor: "pointer" }}>15</button>
+                    ) : "-"}
+                  </td>
+                  <td style={{ padding: "18px 24px", textAlign: "center" }}>
+                    <button onClick={() => setSelectedLesson(row)} style={{ padding: "6px 16px", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                      Biriktirish
+                    </button>
+                  </td>
+                  <td style={{ padding: "18px 24px", textAlign: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                      <button onClick={() => { setEditRow(row); setEditForm({ name: row.name, description: row.description, sectionId: row.sections?.id?.toString() }); setEditOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><EditOutlined style={{ width: 16, height: 16 }} /></button>
+                      <button onClick={() => { setDeleteTargetId(row.id); setDeleteOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><DeleteOutlineOutlined style={{ width: 16, height: 16 }} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 13, color: "#475569" }}>
+          <span>Sahifada 0-10 gacha. Umumiy 2ta</span>
+          <button style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "#475569", fontWeight: 500, cursor: "pointer" }}>
+            <div style={{ width: 24, height: 24, background: "#16a34a", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+              <DownloadOutlined style={{ width: 14, height: 14 }} />
             </div>
-            <button style={{ background: "none", border: "none", color: "#0f172a", fontWeight: 600, cursor: "pointer" }}>Keyingi</button>
+            (2) Yuklab olish .XLS
+          </button>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13, color: "#475569" }}>
+          <span>Bir sahifada: 10 <span style={{fontSize: 10}}>▼</span></span>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button style={{ width: 28, height: 28, background: "none", border: "none", cursor: "pointer" }}>1</button>
+            <button style={{ width: 28, height: 28, background: "none", border: "none", cursor: "pointer" }}>2</button>
+            <button style={{ width: 28, height: 28, background: "none", border: "none", cursor: "pointer" }}>3</button>
+            <span>...</span>
+            <button style={{ width: 28, height: 28, background: "none", border: "none", cursor: "pointer" }}>15</button>
           </div>
+          <button style={{ background: "none", border: "none", color: "#0f172a", fontWeight: 600, cursor: "pointer" }}>Keyingi</button>
         </div>
       </div>
 
       {addOpen && (
         <div style={{ position: "fixed", inset: 0, zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,0.6)", backdropFilter: "blur(4px)" }} onClick={() => setAddOpen(false)} />
-          <div style={{ position: "relative", width: "100%", maxWidth: 540, background: "#fff", borderRadius: 16, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column" }}>
+          <div style={{ position: "relative", width: "100%", maxWidth: 440, background: "#fff", borderRadius: 16, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #e2e8f0" }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: 0 }}>Dars qo'shish</h2>
               <button onClick={() => setAddOpen(false)} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", display: "flex" }}><CloseOutlined style={{ width: 20, height: 20 }} /></button>
             </div>
-            <div style={{ padding: 24, overflowY: "auto", maxHeight: "calc(100vh - 120px)" }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>Bo'lim nomi</label>
-              <div style={{ marginBottom: 16 }}>
-                <CustomSelect 
-                  value={form.sectionId} 
-                  onChange={v => setForm({ ...form, sectionId: v })}
-                  options={sections.map(s => ({ value: String(s.id), label: `${s.name} (${s.courses?.name})` }))}
-                />
-              </div>
+            <div style={{ padding: 24, maxHeight: "70vh", overflowY: "auto" }}>
+              {!section && (
+                <>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>Biriktirilgan bo'lim</label>
+                  <div style={{ marginBottom: 16 }}>
+                    <CustomSelect 
+                      value={form.sectionId} 
+                      onChange={v => setForm({ ...form, sectionId: v })}
+                      options={sections.map(s => ({ value: String(s.id), label: `${s.course?.name || ''} - ${s.name}` }))}
+                    />
+                  </div>
+                </>
+              )}
               
               <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>Dars nomi</label>
               <input type="text" placeholder="Kiriting" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} style={{ ...inputStyle, marginBottom: 16 }} />

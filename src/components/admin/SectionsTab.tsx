@@ -10,12 +10,13 @@ import CustomSelect from "../ui/CustomSelect";
 import FilterListOutlined from "@mui/icons-material/FilterListOutlined";
 import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import CheckOutlined from "@mui/icons-material/CheckOutlined";
+import LessonsTab from "./LessonsTab";
 
 type Section = {
   id: number;
   name: string;
   create_at: string;
-  courses: { id: number; name: string };
+  course: { id: number; name: string };
 };
 
 type Course = { id: number; name: string };
@@ -32,6 +33,8 @@ export default function SectionsTab({ course, onBack }: Props) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [perPage] = useState(10);
+
+  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
 
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -62,7 +65,7 @@ export default function SectionsTab({ course, onBack }: Props) {
 
   const filtered = sections
     .filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
-    .filter(s => course ? s.courses?.id === course.id : true);
+    .filter(s => course ? s.course?.id === course.id : true);
 
   const handleAdd = async () => {
     if (!form.name) {
@@ -115,6 +118,16 @@ export default function SectionsTab({ course, onBack }: Props) {
     outline: "none", transition: "border-color 0.2s",
   };
 
+  if (selectedSection) {
+    return (
+      <LessonsTab
+        course={course}
+        section={selectedSection}
+        onBack={() => setSelectedSection(null)}
+      />
+    );
+  }
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
@@ -156,8 +169,14 @@ export default function SectionsTab({ course, onBack }: Props) {
               <tr><td colSpan={2} style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>Ma'lumot topilmadi.</td></tr>
             ) : (
               filtered.slice((page - 1) * perPage, page * perPage).map((row) => (
-                <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                  <td style={{ padding: "18px 24px", fontSize: 14, fontWeight: 500, color: "#475569" }}>{row.name}</td>
+                <tr key={row.id} onClick={(e) => {
+                  if ((e.target as HTMLElement).closest('button')) return;
+                  setSelectedSection(row);
+                }} style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer", transition: "background 0.15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <td style={{ padding: "18px 24px", fontSize: 14, fontWeight: 500, color: "#0f172a" }}>{row.name}</td>
                   <td style={{ padding: "18px 24px", textAlign: "right" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
                       <button onClick={() => { setEditRow(row); setEditForm({ name: row.name, courseId: row.courses?.id?.toString() }); setEditOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><EditOutlined style={{ width: 16, height: 16 }} /></button>
