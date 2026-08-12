@@ -15,6 +15,7 @@ import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import LinkOutlined from "@mui/icons-material/LinkOutlined";
 import FilterListOutlined from "@mui/icons-material/FilterListOutlined";
 import FileDownloadOutlined from "@mui/icons-material/FileDownloadOutlined";
+import SectionsTab from "./SectionsTab";
 
 type Course = {
   id: number;
@@ -203,6 +204,10 @@ export default function CoursesTab() {
     fontSize: 13, color: "#1e293b",
     outline: "none", transition: "border-color 0.2s",
   };
+
+  if (selectedCourse) {
+    return <SectionsTab course={selectedCourse} onBack={() => setSelectedCourse(null)} />;
+  }
 
   return (
     <div>

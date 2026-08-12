@@ -20,7 +20,12 @@ type Section = {
 
 type Course = { id: number; name: string };
 
-export default function SectionsTab() {
+type Props = {
+  course?: Course;
+  onBack?: () => void;
+};
+
+export default function SectionsTab({ course, onBack }: Props) {
   const [sections, setSections] = useState<Section[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,7 +38,7 @@ export default function SectionsTab() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
-  const [form, setForm] = useState({ name: "", courseId: "" });
+  const [form, setForm] = useState({ name: "", courseId: course ? course.id.toString() : "" });
   const [editRow, setEditRow] = useState<Section | null>(null);
   const [editForm, setEditForm] = useState({ name: "", courseId: "" });
 
@@ -55,7 +60,9 @@ export default function SectionsTab() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const filtered = sections.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = sections
+    .filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
+    .filter(s => course ? s.courses?.id === course.id : true);
 
   const handleAdd = async () => {
     if (!form.name || !form.courseId) return;
@@ -98,14 +105,20 @@ export default function SectionsTab() {
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", margin: 0 }}>Bo'limlar</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 13, color: "#94a3b8" }}>
-            <span>Kurslar</span>
+            <span style={{ cursor: onBack ? "pointer" : "default", color: onBack ? "#3b82f6" : "inherit" }} onClick={onBack}>
+              Kurslar
+            </span>
             <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-            <span>Frontend dasturlash</span>
-            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+            {course ? (
+              <>
+                <span style={{ color: "#475569", fontWeight: 500 }}>{course.name}</span>
+                <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+              </>
+            ) : null}
             <span style={{ color: "#475569", fontWeight: 500 }}>Bo'limlar</span>
           </div>
         </div>
-        <button onClick={() => { setAddOpen(true); setForm({ name: "", courseId: "" }); }} style={{ padding: "0 18px", height: 40, background: "#3b82f6", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        <button onClick={() => { setAddOpen(true); setForm({ name: "", courseId: course ? course.id.toString() : "" }); }} style={{ padding: "0 18px", height: 40, background: "#3b82f6", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <AddCircleOutlineOutlined style={{ width: 18, height: 18 }} /> Bo'lim qo'shish
         </button>
       </div>
