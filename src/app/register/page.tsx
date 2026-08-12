@@ -141,10 +141,10 @@ export default function Register() {
               Ro'yxatdan o'tish
             </h1>
 
-            <form onSubmit={handleSubmit} className="flex flex-col" style={{ gap: 25 }}>
+            <form onSubmit={handleSubmit} className="flex flex-col" style={{ gap: 16 }}>
               {/* Full Name */}
               <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-2">
+                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
                   To'liq ismingizni kiriting <span className="text-red-500">*</span>
                 </label>
                 <div className="relative flex items-center">
@@ -163,7 +163,7 @@ export default function Register() {
 
               {/* Phone */}
               <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-3">
+                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
                   Telefon raqamingiz <span className="text-red-500">*</span>
                 </label>
                 <div className="relative flex items-center">
@@ -182,9 +182,9 @@ export default function Register() {
               </div>
 
               {/* Password */}
-              <div className="mb-5">
-                <label className="block text-[13px] font-medium text-gray-700 mb-3">
-                  Parolni kiriting
+              <div>
+                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                  Parolni kiriting <span className="text-red-500">*</span>
                 </label>
                 <div className="relative flex items-center">
                   <input
@@ -209,9 +209,9 @@ export default function Register() {
               </div>
 
               {/* Confirm Password */}
-              <div className="mb-5">
-                <label className="block text-[13px] font-medium text-gray-700 mb-3">
-                  Parolni tasdiqlang
+              <div>
+                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                  Parolni tasdiqlang <span className="text-red-500">*</span>
                 </label>
                 <div className="relative flex items-center">
                   <input

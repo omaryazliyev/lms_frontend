@@ -145,12 +145,11 @@ export default function Login() {
               Kirish
             </h1>
 
-            <form onSubmit={handleSubmit} className="flex flex-col" style={{ gap: 25 }}>
+            <form onSubmit={handleSubmit} className="flex flex-col" style={{ gap: 16 }}>
               {/* Phone */}
-              <div className="mb-5">
-                <label className="block text-[13px] font-medium text-gray-700 mb-3">
-                  Telefon raqamingiz{" "}
-                  <span className="text-red-500">*</span>
+              <div>
+                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                  Telefon raqamingiz <span className="text-red-500">*</span>
                 </label>
                 <div className="relative flex items-center">
                   <input
@@ -168,8 +167,8 @@ export default function Login() {
               </div>
 
               {/* Password */}
-              <div>
-                <div className="flex justify-between items-center mb-3">
+              <div className="mb-2">
+                <div className="flex justify-between items-center mb-1.5">
                   <label className="block text-[13px] font-medium text-gray-700">
                     Parol
                   </label>
@@ -213,20 +212,13 @@ export default function Login() {
                 }}
                 className="w-full hover:opacity-90 active:scale-[0.98] transition-all text-white font-semibold text-[14px] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               >
-                {loading ? (
-                  <CircularProgress size={18} color="inherit" />
-                ) : (
-                  "Kirish"
-                )}
+                {loading ? <CircularProgress size={18} color="inherit" /> : "Kirish"}
               </button>
 
               {/* Bottom link */}
               <p className="text-center text-[12px] text-gray-500">
                 Menda hisob mavjud emas!{" "}
-                <Link
-                  href="/register"
-                  className="text-[#3b82f6] font-semibold hover:underline"
-                >
+                <Link href="/register" className="text-[#3b82f6] font-semibold hover:underline">
                   Ro'yxatdan o'tish
                 </Link>
               </p>
