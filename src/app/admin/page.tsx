@@ -46,12 +46,6 @@ const NAV: NavItem[] = [
     subItems: [
       { label: "Barcha kurslar" },
       { label: "Kategoriyalar" },
-      { label: "Bo'limlar" },
-      { label: "Darslar" },
-      { label: "Vazifalar" },
-      { label: "Testlar" },
-      { label: "Savol-javoblar" },
-      { label: "Uyga vazifalar" },
     ],
   },
   { label: "To'lovlar", Icon: PaymentsOutlined },
