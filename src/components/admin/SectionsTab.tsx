@@ -65,22 +65,38 @@ export default function SectionsTab({ course, onBack }: Props) {
     .filter(s => course ? s.courses?.id === course.id : true);
 
   const handleAdd = async () => {
-    if (!form.name || !form.courseId) return;
+    if (!form.name) {
+      alert("Iltimos, bo'lim nomini kiriting");
+      return;
+    }
+    if (!form.courseId) {
+      alert("Iltimos, kursni tanlang");
+      return;
+    }
     try {
       await api.post("/sections", { name: form.name, courseId: Number(form.courseId) });
       await fetchData();
       setAddOpen(false);
-      setForm({ name: "", courseId: "" });
-    } catch (e) { console.error(e); }
+      setForm({ name: "", courseId: course ? course.id.toString() : "" });
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.response?.data?.message || "Xatolik yuz berdi");
+    }
   };
 
   const handleEdit = async () => {
-    if (!editRow || !editForm.name) return;
+    if (!editRow || !editForm.name) {
+      alert("Iltimos, bo'lim nomini kiriting");
+      return;
+    }
     try {
       await api.patch(`/sections/${editRow.id}`, { name: editForm.name, courseId: Number(editForm.courseId) });
       await fetchData();
       setEditOpen(false);
-    } catch (e) { console.error(e); }
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.response?.data?.message || "Xatolik yuz berdi");
+    }
   };
 
   const handleDelete = async () => {
@@ -188,14 +204,18 @@ export default function SectionsTab({ course, onBack }: Props) {
               <button onClick={() => setAddOpen(false)} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", display: "flex" }}><CloseOutlined style={{ width: 20, height: 20 }} /></button>
             </div>
             <div style={{ padding: 24 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>Biriktirilgan kurs</label>
-              <div style={{ marginBottom: 16 }}>
-                <CustomSelect 
-                  value={form.courseId} 
-                  onChange={v => setForm({ ...form, courseId: v })}
-                  options={courses.map(c => ({ value: String(c.id), label: c.name }))}
-                />
-              </div>
+              {!course && (
+                <>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>Biriktirilgan kurs</label>
+                  <div style={{ marginBottom: 16 }}>
+                    <CustomSelect 
+                      value={form.courseId} 
+                      onChange={v => setForm({ ...form, courseId: v })}
+                      options={courses.map(c => ({ value: String(c.id), label: c.name }))}
+                    />
+                  </div>
+                </>
+              )}
               <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>Bo'lim nomi</label>
               <input type="text" placeholder="Kiriting" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} style={inputStyle} />
               
@@ -216,14 +236,18 @@ export default function SectionsTab({ course, onBack }: Props) {
               <button onClick={() => setEditOpen(false)} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", display: "flex" }}><CloseOutlined style={{ width: 20, height: 20 }} /></button>
             </div>
             <div style={{ padding: 24 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>Biriktirilgan kurs</label>
-              <div style={{ marginBottom: 16 }}>
-                <CustomSelect 
-                  value={editForm.courseId} 
-                  onChange={v => setEditForm({ ...editForm, courseId: v })}
-                  options={courses.map(c => ({ value: String(c.id), label: c.name }))}
-                />
-              </div>
+              {!course && (
+                <>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>Biriktirilgan kurs</label>
+                  <div style={{ marginBottom: 16 }}>
+                    <CustomSelect 
+                      value={editForm.courseId} 
+                      onChange={v => setEditForm({ ...editForm, courseId: v })}
+                      options={courses.map(c => ({ value: String(c.id), label: c.name }))}
+                    />
+                  </div>
+                </>
+              )}
               <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>Bo'lim nomi</label>
               <input type="text" placeholder="Kiriting" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} style={inputStyle} />
               
