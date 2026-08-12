@@ -32,7 +32,7 @@ export default function ProfilePage({ user, onUpdate }: { user?: any; onUpdate?:
       setFullName(user.full_name || "");
       setPhone(user.phone || "");
       setEmail(user.email || "");
-      setAvatarPreview(user.file ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/uploads/images/${user.file}` : null);
+      setAvatarPreview(user.file ? `/api/v1/uploads/images/${user.file}` : null);
     }
   }, [user]);
 
