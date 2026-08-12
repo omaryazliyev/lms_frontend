@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar, Badge, CircularProgress } from "@mui/material";
 import GridViewOutlined from "@mui/icons-material/GridViewOutlined";
 import PeopleAltOutlined from "@mui/icons-material/PeopleAltOutlined";
@@ -75,6 +76,25 @@ export default function AdminDashboard() {
   const [activeNav, setActiveNav] = useState("Asosiy");
   
   const [user, setUser] = useState<any>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Sync state from URL on mount
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "courses") {
+      setActiveNav("Kurslar");
+      setOpenMenus(["Kurslar"]);
+      setActiveSubItem("Barcha kurslar");
+    } else if (tab === "categories") {
+      setActiveNav("Kurslar");
+      setOpenMenus(["Kurslar"]);
+      setActiveSubItem("Kategoriyalar");
+    } else if (tab === "users") {
+      setActiveNav("Foydalanuvchilar");
+      setOpenMenus(["Foydalanuvchilar"]);
+    }
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -91,6 +111,23 @@ export default function AdminDashboard() {
       }
     }
   }, []);
+
+  // Update URL when tab changes
+  const navigateTo = (nav: string, subItem: string) => {
+    setActiveNav(nav);
+    setActiveSubItem(subItem);
+    if (nav === "Kurslar" && subItem === "Barcha kurslar") {
+      router.replace("/admin?tab=courses", { scroll: false });
+    } else if (nav === "Kurslar" && subItem === "Kategoriyalar") {
+      router.replace("/admin?tab=categories", { scroll: false });
+    } else if (nav === "Foydalanuvchilar") {
+      router.replace("/admin?tab=users", { scroll: false });
+    } else if (nav === "Asosiy") {
+      router.replace("/admin", { scroll: false });
+    } else {
+      router.replace("/admin", { scroll: false });
+    }
+  };
 
   const toggleMenu = (label: string) => {
     setOpenMenus(prev =>
@@ -170,11 +207,11 @@ export default function AdminDashboard() {
                 <button
                   onClick={() => {
                     setShowProfile(false);
-                    setActiveNav(label);
                     if (hasSub) {
+                      setActiveNav(label);
                       toggleMenu(label);
                     } else {
-                      setActiveSubItem("");
+                      navigateTo(label, "");
                     }
                   }}
                   style={{
@@ -220,7 +257,7 @@ export default function AdminDashboard() {
                     {subItems!.map(sub => (
                       <button
                         key={sub.label}
-                        onClick={() => { setShowProfile(false); setActiveSubItem(sub.label); setActiveNav(label); }}
+                        onClick={() => { setShowProfile(false); navigateTo(label, sub.label); }}
                         style={{
                           height: 34,
                           padding: "0 12px",
@@ -377,10 +414,9 @@ export default function AdminDashboard() {
           {!showProfile && activeNav === "Foydalanuvchilar" && <UsersTab activeSubItem={activeSubItem} />}
           {!showProfile && activeNav === "Kurslar" && activeSubItem === "Barcha kurslar" && <CoursesTab />}
           {!showProfile && activeNav === "Kurslar" && activeSubItem === "Kategoriyalar" && <CategoriesTab />}
-          {!showProfile && activeNav === "Kurslar" && activeSubItem === "Bo'limlar" && <SectionsTab />}
-          {!showProfile && activeNav === "Kurslar" && activeSubItem === "Darslar" && <LessonsTab />}
           {!showProfile && activeNav === "Kurslar"
-            && !["Barcha kurslar", "Kategoriyalar", "Bo'limlar", "Darslar"].includes(activeSubItem)
+            && !["Barcha kurslar", "Kategoriyalar"].includes(activeSubItem)
+            && activeSubItem !== ""
             && (
             <div style={{ padding: 40, textAlign: "center", color: "#64748b", fontSize: 15 }}>
               Tez orada qo'shiladi...
