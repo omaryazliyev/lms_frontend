@@ -197,31 +197,33 @@ export default function UsersTab({ activeSubItem }: { activeSubItem: string }) {
     if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
 
     try {
-      // Phone raqamdan faqat raqamlarni olib +998... formatiga keltiramiz
       const cleanPhone = "+" + form.phone.replace(/\D/g, "");
 
-      const body: Record<string, any> = {
-        full_name: form.fish,
-        phone: cleanPhone,
-        password: form.password,
-      };
-      if (form.course) body.courseIds = [Number(form.course)];
-      if (form.tajriba) body.experiense = Number(form.tajriba);
-      if (form.kasb) body.job = form.kasb;
-      if (form.sayt && form.sayt !== "http://") body.web_link = form.sayt;
-      if (form.qisqacha) body.description = form.qisqacha;
-      if (form.facebook) body.fecebook = form.facebook;
-      if (form.telegram) body.telegram = form.telegram;
-      if (form.linkedin) body.linkedin = form.linkedin;
-      if (form.instagram) body.instagram = form.instagram;
-      if (form.github) body.github = form.github;
+      const formData = new FormData();
+      formData.append("full_name", form.fish);
+      formData.append("phone", cleanPhone);
+      formData.append("password", form.password);
+
+      if (form.course) formData.append("courseIds[]", form.course);
+      
+      if (form.tajriba) formData.append("experiense", form.tajriba);
+      if (form.kasb) formData.append("job", form.kasb);
+      if (form.sayt && form.sayt !== "http://") formData.append("web_link", form.sayt);
+      if (form.qisqacha) formData.append("description", form.qisqacha);
+      if (form.facebook) formData.append("fecebook", form.facebook);
+      if (form.telegram) formData.append("telegram", form.telegram);
+      if (form.linkedin) formData.append("linkedin", form.linkedin);
+      if (form.instagram) formData.append("instagram", form.instagram);
+      if (form.github) formData.append("github", form.github);
 
       const endpoint = activeSubItem === "Mentorlar" ? "/mentor"
         : activeSubItem === "Assistentlar" ? "/assistant"
         : activeSubItem === "O'quvchilar" ? "/student"
         : "/users/admin";
 
-      await api.post(endpoint, body);
+      await api.post(endpoint, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
 
       if (activeSubItem === "Mentorlar") await fetchMentors();
       else if (activeSubItem === "Assistentlar") await fetchAssistants();
@@ -234,6 +236,7 @@ export default function UsersTab({ activeSubItem }: { activeSubItem: string }) {
       setFormErrors({});
     } catch (e: any) {
       console.error("ADD ERROR:", e?.response?.data || e);
+      alert(e?.response?.data?.message || "Xatolik yuz berdi");
     }
   };
 
@@ -242,30 +245,34 @@ export default function UsersTab({ activeSubItem }: { activeSubItem: string }) {
     try {
       const cleanPhone = "+" + editForm.phone.replace(/\D/g, "");
 
-      const body: Record<string, any> = {
-        full_name: editForm.fish,
-        phone: cleanPhone,
-      };
+      const formData = new FormData();
+      formData.append("full_name", editForm.fish);
+      formData.append("phone", cleanPhone);
+
       if (editForm.password && editForm.password !== "••••••") {
-        body.password = editForm.password;
+        formData.append("password", editForm.password);
       }
-      if (editForm.course) body.courseIds = [Number(editForm.course)];
-      if (editForm.tajriba) body.experiense = Number(editForm.tajriba);
-      if (editForm.kasb) body.job = editForm.kasb;
-      if (editForm.sayt && editForm.sayt !== "http://") body.web_link = editForm.sayt;
-      if (editForm.qisqacha) body.description = editForm.qisqacha;
-      if (editForm.facebook) body.fecebook = editForm.facebook;
-      if (editForm.telegram) body.telegram = editForm.telegram;
-      if (editForm.linkedin) body.linkedin = editForm.linkedin;
-      if (editForm.instagram) body.instagram = editForm.instagram;
-      if (editForm.github) body.github = editForm.github;
+      
+      if (editForm.course) formData.append("courseIds[]", editForm.course);
+      
+      if (editForm.tajriba) formData.append("experiense", editForm.tajriba);
+      if (editForm.kasb) formData.append("job", editForm.kasb);
+      if (editForm.sayt && editForm.sayt !== "http://") formData.append("web_link", editForm.sayt);
+      if (editForm.qisqacha) formData.append("description", editForm.qisqacha);
+      if (editForm.facebook) formData.append("fecebook", editForm.facebook);
+      if (editForm.telegram) formData.append("telegram", editForm.telegram);
+      if (editForm.linkedin) formData.append("linkedin", editForm.linkedin);
+      if (editForm.instagram) formData.append("instagram", editForm.instagram);
+      if (editForm.github) formData.append("github", editForm.github);
 
-      const endpoint = activeSubItem === "Mentorlar" ? "/mentor"
-        : activeSubItem === "Assistentlar" ? "/assistant"
-        : activeSubItem === "O'quvchilar" ? "/student"
-        : "/users";
+      const endpoint = activeSubItem === "Mentorlar" ? `/mentor/${editRow.id}`
+        : activeSubItem === "Assistentlar" ? `/assistant/${editRow.id}`
+        : activeSubItem === "O'quvchilar" ? `/student/${editRow.id}`
+        : `/users/admin/${editRow.id}`;
 
-      await api.patch(`${endpoint}/${editRow.id}`, body);
+      await api.patch(endpoint, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
 
       if (activeSubItem === "Mentorlar") await fetchMentors();
       else if (activeSubItem === "Assistentlar") await fetchAssistants();
@@ -273,8 +280,10 @@ export default function UsersTab({ activeSubItem }: { activeSubItem: string }) {
       else await fetchAdmins();
 
       setEditOpen(false);
+      setSuccessOpen(true);
     } catch (e: any) {
       console.error("EDIT ERROR:", e?.response?.data || e);
+      alert(e?.response?.data?.message || "Xatolik yuz berdi");
     }
   };
 
@@ -482,7 +491,7 @@ export default function UsersTab({ activeSubItem }: { activeSubItem: string }) {
                     <CustomSelect value={form.course} onChange={v => setForm({ ...form, course: v })} options={courses.map(c => ({ label: c.name, value: String(c.id) }))} placeholder="Kursni tanlang" />
                   </div>
                 )}
-                {(activeSubItem === "Mentorlar" || activeSubItem === "Assistentlar") && (
+                {activeSubItem === "Mentorlar" && (
                   <>
                     <div>
                       <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#334155", marginBottom: 6 }}>Tajribasi</label>
@@ -499,7 +508,7 @@ export default function UsersTab({ activeSubItem }: { activeSubItem: string }) {
                   </>
                 )}
               </div>
-              {(activeSubItem === "Mentorlar" || activeSubItem === "Assistentlar") && (
+              {activeSubItem === "Mentorlar" && (
                 <div style={{ marginTop: 20 }}>
                   <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#334155", marginBottom: 6 }}>Qisqacha ta'rif</label>
                   <textarea rows={3} placeholder="Ta'rif yozing..." value={form.qisqacha} onChange={e => setForm({ ...form, qisqacha: e.target.value })} style={{ ...inputStyle, height: "auto", padding: "12px 14px", resize: "none" }} />
