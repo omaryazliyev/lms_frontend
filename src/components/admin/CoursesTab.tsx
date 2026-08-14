@@ -213,21 +213,11 @@ export default function CoursesTab() {
     <div>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", margin: 0 }}>
-            {selectedCourse ? "Kursda qatnashuvchilar" : "Kurslar"}
-          </h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", margin: 0 }}>Kurslar</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, fontSize: 13, color: "#94a3b8" }}>
             <span>Kurslar</span>
             <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-            {selectedCourse ? (
-              <>
-                <span style={{ cursor: "pointer", color: "#3b82f6" }} onClick={() => setSelectedCourse(null)}>Barcha kurslar</span>
-                <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-                <span style={{ color: "#475569", fontWeight: 500 }}>{selectedCourse.name}</span>
-              </>
-            ) : (
-              <span style={{ color: "#475569", fontWeight: 500 }}>Barcha kurslar</span>
-            )}
+            <span style={{ color: "#475569", fontWeight: 500 }}>Barcha kurslar</span>
           </div>
         </div>
         {!selectedCourse && (

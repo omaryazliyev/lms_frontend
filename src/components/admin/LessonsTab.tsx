@@ -13,6 +13,7 @@ import CloudUploadOutlined from "@mui/icons-material/CloudUploadOutlined";
 import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import PlayCircleFilledWhiteOutlined from "@mui/icons-material/PlayCircleFilledWhiteOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
+import LessonDetails from "./LessonDetails";
 
 type Lesson = {
   id: number;
@@ -22,8 +23,6 @@ type Lesson = {
   create_at: string;
   sections: { id: number; name: string; course: { id: number; name: string } };
 };
-
-import LessonDetails from "./LessonDetails";
 
 type Section = { id: number; name: string; course: { name: string } };
 
@@ -295,7 +294,7 @@ export default function LessonsTab({ course, section, onBack }: Props) {
                 <CustomSelect 
                   value={editForm.sectionId} 
                   onChange={v => setEditForm({ ...editForm, sectionId: v })}
-                  options={sections.map(s => ({ value: String(s.id), label: `${s.name} (${s.courses?.name})` }))}
+                  options={sections.map(s => ({ value: String(s.id), label: `${s.name} (${s.course?.name})` }))}
                 />
               </div>
               

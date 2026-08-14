@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar, Badge, CircularProgress } from "@mui/material";
 import GridViewOutlined from "@mui/icons-material/GridViewOutlined";
 import PeopleAltOutlined from "@mui/icons-material/PeopleAltOutlined";
@@ -76,12 +75,11 @@ export default function AdminDashboard() {
   const [activeNav, setActiveNav] = useState("Asosiy");
   
   const [user, setUser] = useState<any>(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
 
   // Sync state from URL on mount
   useEffect(() => {
-    const tab = searchParams.get("tab");
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
     if (tab === "courses") {
       setActiveNav("Kurslar");
       setOpenMenus(["Kurslar"]);
@@ -96,6 +94,28 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  // Update URL when tab changes
+  const navigateTo = (nav: string, subItem: string) => {
+    setActiveNav(nav);
+    setActiveSubItem(subItem);
+    let url = "/admin";
+    if (nav === "Kurslar" && subItem === "Barcha kurslar") {
+      url = "/admin?tab=courses";
+    } else if (nav === "Kurslar" && subItem === "Kategoriyalar") {
+      url = "/admin?tab=categories";
+    } else if (nav === "Foydalanuvchilar") {
+      url = "/admin?tab=users";
+    }
+    window.history.replaceState(null, "", url);
+  };
+
+  const toggleMenu = (label: string) => {
+    setOpenMenus(prev =>
+      prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label]
+    );
+  };
+
+  // Restore user fetch effect
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (token) {
@@ -111,29 +131,6 @@ export default function AdminDashboard() {
       }
     }
   }, []);
-
-  // Update URL when tab changes
-  const navigateTo = (nav: string, subItem: string) => {
-    setActiveNav(nav);
-    setActiveSubItem(subItem);
-    if (nav === "Kurslar" && subItem === "Barcha kurslar") {
-      router.replace("/admin?tab=courses", { scroll: false });
-    } else if (nav === "Kurslar" && subItem === "Kategoriyalar") {
-      router.replace("/admin?tab=categories", { scroll: false });
-    } else if (nav === "Foydalanuvchilar") {
-      router.replace("/admin?tab=users", { scroll: false });
-    } else if (nav === "Asosiy") {
-      router.replace("/admin", { scroll: false });
-    } else {
-      router.replace("/admin", { scroll: false });
-    }
-  };
-
-  const toggleMenu = (label: string) => {
-    setOpenMenus(prev =>
-      prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label]
-    );
-  };
 
   const SIDEBAR_W = collapsed ? SIDEBAR_W_COLLAPSED : SIDEBAR_W_OPEN;
 
