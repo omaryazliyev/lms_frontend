@@ -33,7 +33,14 @@ type Props = {
 };
 
 export default function LessonsTab({ course, section, onBack }: Props) {
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const lessonId = params.get("lessonId");
+      if (lessonId) return { id: Number(lessonId) } as any;
+    }
+    return null;
+  });
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(false);
@@ -127,8 +134,25 @@ export default function LessonsTab({ course, section, onBack }: Props) {
     outline: "none", transition: "border-color 0.2s",
   };
 
+  const goToLesson = (lesson: Lesson) => {
+    setSelectedLesson(lesson);
+    let url = `/admin?tab=courses`;
+    if (course) url += `&courseId=${course.id}`;
+    if (section) url += `&sectionId=${section.id}`;
+    url += `&lessonId=${lesson.id}`;
+    window.history.pushState(null, "", url);
+  };
+
+  const goBackFromLesson = () => {
+    setSelectedLesson(null);
+    let url = `/admin?tab=courses`;
+    if (course) url += `&courseId=${course.id}`;
+    if (section) url += `&sectionId=${section.id}`;
+    window.history.pushState(null, "", url);
+  };
+
   if (selectedLesson) {
-    return <LessonDetails lesson={selectedLesson} onBack={() => setSelectedLesson(null)} />;
+    return <LessonDetails lesson={selectedLesson} onBack={goBackFromLesson} />;
   }
 
   return (
@@ -178,7 +202,13 @@ export default function LessonsTab({ course, section, onBack }: Props) {
               <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>Ma'lumot topilmadi.</td></tr>
             ) : (
               filtered.slice((page - 1) * perPage, page * perPage).map((row) => (
-                <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                <tr key={row.id} onClick={(e) => {
+                  if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input')) return;
+                  goToLesson(row);
+                }} style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer", transition: "background 0.15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
                   <td style={{ padding: "18px 24px", fontSize: 13, color: "#475569" }}>
                     {row.sections?.course?.name || "-"}
                   </td>
@@ -192,7 +222,7 @@ export default function LessonsTab({ course, section, onBack }: Props) {
                     ) : "-"}
                   </td>
                   <td style={{ padding: "18px 24px", textAlign: "center" }}>
-                    <button onClick={() => setSelectedLesson(row)} style={{ padding: "6px 16px", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    <button onClick={() => goToLesson(row)} style={{ padding: "6px 16px", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                       Biriktirish
                     </button>
                   </td>
