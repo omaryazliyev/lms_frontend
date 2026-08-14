@@ -34,7 +34,14 @@ export default function SectionsTab({ course, onBack }: Props) {
   const [page, setPage] = useState(1);
   const [perPage] = useState(10);
 
-  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
+  const [selectedSection, setSelectedSection] = useState<Section | null>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const sectionId = params.get("sectionId");
+      if (sectionId) return { id: Number(sectionId) } as any;
+    }
+    return null;
+  });
 
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -118,12 +125,27 @@ export default function SectionsTab({ course, onBack }: Props) {
     outline: "none", transition: "border-color 0.2s",
   };
 
+  const goToSection = (section: Section) => {
+    setSelectedSection(section);
+    let url = `/admin?tab=courses`;
+    if (course) url += `&courseId=${course.id}`;
+    url += `&sectionId=${section.id}`;
+    window.history.pushState(null, "", url);
+  };
+
+  const goBackFromSection = () => {
+    setSelectedSection(null);
+    let url = `/admin?tab=courses`;
+    if (course) url += `&courseId=${course.id}`;
+    window.history.pushState(null, "", url);
+  };
+
   if (selectedSection) {
     return (
       <LessonsTab
         course={course}
         section={selectedSection}
-        onBack={() => setSelectedSection(null)}
+        onBack={goBackFromSection}
       />
     );
   }
@@ -171,7 +193,7 @@ export default function SectionsTab({ course, onBack }: Props) {
               filtered.slice((page - 1) * perPage, page * perPage).map((row) => (
                 <tr key={row.id} onClick={(e) => {
                   if ((e.target as HTMLElement).closest('button')) return;
-                  setSelectedSection(row);
+                  goToSection(row);
                 }} style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer", transition: "background 0.15s" }}
                   onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}

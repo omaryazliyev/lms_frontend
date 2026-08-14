@@ -51,7 +51,15 @@ export default function CoursesTab() {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
   // VIEW MODE
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(() => {
+    // Restore from URL on mount
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const courseId = params.get("courseId");
+      if (courseId) return { id: Number(courseId) } as any;
+    }
+    return null;
+  });
   
   // BATAFSIL MODAL
   const [viewOpen, setViewOpen] = useState(false);
@@ -205,8 +213,18 @@ export default function CoursesTab() {
     outline: "none", transition: "border-color 0.2s",
   };
 
+  const goToCourse = (course: Course) => {
+    setSelectedCourse(course);
+    window.history.pushState(null, "", `/admin?tab=courses&courseId=${course.id}`);
+  };
+
+  const goBack = () => {
+    setSelectedCourse(null);
+    window.history.pushState(null, "", "/admin?tab=courses");
+  };
+
   if (selectedCourse) {
-    return <SectionsTab course={selectedCourse} onBack={() => setSelectedCourse(null)} />;
+    return <SectionsTab course={selectedCourse} onBack={goBack} />;
   }
 
   return (
@@ -330,7 +348,7 @@ export default function CoursesTab() {
                   <tr key={course.id} onClick={(e) => {
                     // Prevent row click if clicking on actions
                     if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("input")) return;
-                    setSelectedCourse(course);
+                    goToCourse(course);
                   }} style={{ borderBottom: "1px solid #f1f5f9", transition: "background 0.15s", cursor: "pointer" }}>
                     <td style={{ padding: "16px" }}>
                       <input type="checkbox" style={{ cursor: "pointer" }} />
