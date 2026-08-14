@@ -179,7 +179,7 @@ export default function CategoriesTab() {
                 <tr><td colSpan={3} style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>Ma'lumot topilmadi.</td></tr>
               ) : (
                 filtered.slice((page - 1) * perPage, page * perPage).map((row, i) => (
-                  <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <tr key={row.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
                     <td style={{ padding: "16px", fontSize: 13, color: "#0f172a" }}>{(page - 1) * perPage + i + 1}</td>
                     <td style={{ padding: "16px", fontSize: 14, fontWeight: 500, color: "#475569" }}>{row.name}</td>
                     <td style={{ padding: "16px", textAlign: "right" }}>
