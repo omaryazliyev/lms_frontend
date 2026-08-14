@@ -352,12 +352,12 @@ export default function CoursesTab() {
                     <td style={{ padding: "16px", border: "1px solid #e2e8f0", textAlign: "center" }}>
                       <input type="checkbox" style={{ cursor: "pointer" }} />
                     </td>
-                    <td style={{ padding: "16px", border: "1px solid #e2e8f0" }}>
-                      <div style={{ width: 56, height: 36, borderRadius: 6, background: "linear-gradient(135deg, #6366f1, #a855f7)", overflow: "hidden" }}>
-                        {course.banner ? (
-                           <img src={`/api/v1/uploads/images/${course.banner}`} alt="banner" style={{width: '100%', height: '100%', objectFit: 'cover'}} onError={(e: any) => e.target.style.display = 'none'} />
-                        ) : null}
-                      </div>
+                    <td style={{ padding: "16px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+                      {course.banner ? (
+                         <img src={`/api/v1/uploads/images/${course.banner}`} alt="banner" style={{width: 80, height: 50, objectFit: 'cover', borderRadius: 4}} onError={(e: any) => e.target.src = 'https://placehold.co/80x50?text=No+Image'} />
+                      ) : (
+                         <div style={{ width: 80, height: 50, borderRadius: 4, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#94a3b8" }}>No Image</div>
+                      )}
                     </td>
                     <td style={{ padding: "16px", fontSize: 14, fontWeight: 600, color: "#3b82f6", border: "1px solid #e2e8f0" }}>
                       {course.name}
