@@ -179,7 +179,7 @@ export default function SectionsTab({ course, onBack }: Props) {
                   <td style={{ padding: "18px 24px", fontSize: 14, fontWeight: 500, color: "#0f172a" }}>{row.name}</td>
                   <td style={{ padding: "18px 24px", textAlign: "right" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-                      <button onClick={() => { setEditRow(row); setEditForm({ name: row.name, courseId: row.courses?.id?.toString() }); setEditOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><EditOutlined style={{ width: 16, height: 16 }} /></button>
+                      <button onClick={() => { setEditRow(row); setEditForm({ name: row.name, courseId: row.course?.id?.toString() }); setEditOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><EditOutlined style={{ width: 16, height: 16 }} /></button>
                       <button onClick={() => { setDeleteTargetId(row.id); setDeleteOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><DeleteOutlineOutlined style={{ width: 16, height: 16 }} /></button>
                     </div>
                   </td>
