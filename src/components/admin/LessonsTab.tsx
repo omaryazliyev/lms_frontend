@@ -191,15 +191,14 @@ export default function LessonsTab({ course, section, onBack }: Props) {
               <th style={{ padding: "14px 24px", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Dars mavzusi</th>
               <th style={{ padding: "14px 24px", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#0f172a", width: "25%" }}>Dars haqida</th>
               <th style={{ padding: "14px 24px", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Dars video fayli</th>
-              <th style={{ padding: "14px 24px", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Materiallar</th>
               <th style={{ padding: "14px 24px", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Amallar</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ padding: 40, textAlign: "center" }}><CircularProgress size={24} /></td></tr>
+              <tr><td colSpan={5} style={{ padding: 40, textAlign: "center" }}><CircularProgress size={24} /></td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>Ma'lumot topilmadi.</td></tr>
+              <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>Ma'lumot topilmadi.</td></tr>
             ) : (
               filtered.slice((page - 1) * perPage, page * perPage).map((row) => (
                 <tr key={row.id} onClick={(e) => {
@@ -220,11 +219,6 @@ export default function LessonsTab({ course, section, onBack }: Props) {
                         <PlayCircleFilledWhiteOutlined style={{ width: 16, height: 16 }} /> Video
                       </button>
                     ) : "-"}
-                  </td>
-                  <td style={{ padding: "18px 24px", textAlign: "center" }}>
-                    <button onClick={() => goToLesson(row)} style={{ padding: "6px 16px", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                      Biriktirish
-                    </button>
                   </td>
                   <td style={{ padding: "18px 24px", textAlign: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
