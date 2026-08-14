@@ -122,7 +122,7 @@ export default function CategoriesTab() {
           style={{
             display: "flex", alignItems: "center", gap: 8,
             padding: "0 18px", height: 40,
-            background: "#b91c1c", color: "#fff",
+            background: "#3b82f6", color: "#fff",
             border: "none", borderRadius: 8,
             fontSize: 13, fontWeight: 600, cursor: "pointer",
           }}
@@ -180,7 +180,7 @@ export default function CategoriesTab() {
               ) : (
                 filtered.slice((page - 1) * perPage, page * perPage).map((row, i) => (
                   <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "16px", fontSize: 13, color: "#0f172a" }}>{row.id}</td>
+                    <td style={{ padding: "16px", fontSize: 13, color: "#0f172a" }}>{(page - 1) * perPage + i + 1}</td>
                     <td style={{ padding: "16px", fontSize: 14, fontWeight: 500, color: "#475569" }}>{row.name}</td>
                     <td style={{ padding: "16px", textAlign: "right" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
