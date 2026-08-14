@@ -286,28 +286,24 @@ export default function CoursesTab() {
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
             <thead>
-              <tr style={{ borderBottom: "1px solid #e2e8f0" }}>
-                <th style={{ padding: "14px 16px", textAlign: "left", width: 40 }}>
+              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", borderTop: "1px solid #e2e8f0" }}>
+                <th style={{ padding: "14px 16px", width: 50, border: "1px solid #e2e8f0" }}>
                   <input type="checkbox" style={{ cursor: "pointer" }} />
                 </th>
                 {selectedCourse ? (
                   <>
-                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Ism</th>
-                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Telefon raqami</th>
-                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Narxi</th>
                     <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>To'lov turi</th>
                     <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Yaratilgan vaqt</th>
                   </>
                 ) : (
                   <>
-                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Banner</th>
-                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Kurs nomi</th>
-                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Bo'limlar</th>
-                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Darajasi</th>
-                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Narxi</th>
-                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Kategoriya</th>
-                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Holati</th>
-                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Amallar</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b", border: "1px solid #e2e8f0" }}>Banner</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b", border: "1px solid #e2e8f0" }}>Kurs nomi</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b", border: "1px solid #e2e8f0" }}>Darajasi</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b", border: "1px solid #e2e8f0" }}>Narxi</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b", border: "1px solid #e2e8f0" }}>Kategoriya</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b", border: "1px solid #e2e8f0" }}>Holati</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b", border: "1px solid #e2e8f0" }}>Amallar</th>
                   </>
                 )}
               </tr>
@@ -349,39 +345,33 @@ export default function CoursesTab() {
                     // Prevent row click if clicking on actions
                     if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("input")) return;
                     goToCourse(course);
-                  }} style={{ borderBottom: "1px solid #f1f5f9", transition: "background 0.15s", cursor: "pointer" }}>
-                    <td style={{ padding: "16px" }}>
+                  }} style={{ borderBottom: "1px solid #e2e8f0", transition: "background 0.15s", cursor: "pointer", background: "#fff" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+                  >
+                    <td style={{ padding: "16px", border: "1px solid #e2e8f0", textAlign: "center" }}>
                       <input type="checkbox" style={{ cursor: "pointer" }} />
                     </td>
-                    <td style={{ padding: "16px" }}>
+                    <td style={{ padding: "16px", border: "1px solid #e2e8f0" }}>
                       <div style={{ width: 56, height: 36, borderRadius: 6, background: "linear-gradient(135deg, #6366f1, #a855f7)", overflow: "hidden" }}>
                         {course.banner ? (
                            <img src={`/api/v1/uploads/images/${course.banner}`} alt="banner" style={{width: '100%', height: '100%', objectFit: 'cover'}} onError={(e: any) => e.target.style.display = 'none'} />
                         ) : null}
                       </div>
                     </td>
-                    <td style={{ padding: "16px", fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
+                    <td style={{ padding: "16px", fontSize: 14, fontWeight: 600, color: "#3b82f6", border: "1px solid #e2e8f0" }}>
                       {course.name}
                     </td>
-                    <td style={{ padding: "16px" }}>
-                      <button onClick={(e) => { e.stopPropagation(); setViewCourse(course); setViewOpen(true); }} style={{ 
-                        display: "flex", alignItems: "center", gap: 6, 
-                        background: "none", border: "none", cursor: "pointer",
-                        fontSize: 13, color: "#334155", fontWeight: 500
-                      }}>
-                        Batafsil <DescriptionOutlined style={{ width: 16, height: 16, color: "#64748b" }} />
-                      </button>
-                    </td>
-                    <td style={{ padding: "16px", fontSize: 13, color: "#334155" }}>
+                    <td style={{ padding: "16px", fontSize: 13, color: "#0f172a", fontWeight: 500, border: "1px solid #e2e8f0" }}>
                       {course.level || "Beginner"}
                     </td>
-                    <td style={{ padding: "16px", fontSize: 13, color: "#334155", fontWeight: 500 }}>
+                    <td style={{ padding: "16px", fontSize: 13, color: "#0f172a", fontWeight: 500, border: "1px solid #e2e8f0" }}>
                       {course.prise ? course.prise.toLocaleString() : "0"}
                     </td>
-                    <td style={{ padding: "16px", fontSize: 13, color: "#334155" }}>
+                    <td style={{ padding: "16px", fontSize: 13, color: "#3b82f6", fontWeight: 500, border: "1px solid #e2e8f0" }}>
                       {course.categories?.name || "Kategoriyasiz"}
                     </td>
-                    <td style={{ padding: "16px" }}>
+                    <td style={{ padding: "16px", border: "1px solid #e2e8f0" }}>
                       <span style={{ 
                         display: "inline-flex", padding: "4px 10px", borderRadius: 20, 
                         fontSize: 12, fontWeight: 600, 
@@ -390,12 +380,15 @@ export default function CoursesTab() {
                         Faol
                       </span>
                     </td>
-                    <td style={{ padding: "16px" }}>
+                    <td style={{ padding: "16px", border: "1px solid #e2e8f0" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <button onClick={(e) => { e.stopPropagation(); openEdit(course); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#3b82f6", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <button onClick={(e) => { e.stopPropagation(); setViewCourse(course); setViewOpen(true); }} style={{ width: 32, height: 32, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, color: "#64748b", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <VisibilityOutlined style={{ width: 16, height: 16 }} />
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); openEdit(course); }} style={{ width: 32, height: 32, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, color: "#64748b", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <EditOutlined style={{ width: 16, height: 16 }} />
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); setDeleteTargetId(course.id); setDeleteOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <button onClick={(e) => { e.stopPropagation(); setDeleteTargetId(course.id); setDeleteOpen(true); }} style={{ width: 32, height: 32, border: "1px solid #fecaca", background: "#fff", borderRadius: 6, color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <DeleteOutlineOutlined style={{ width: 16, height: 16 }} />
                         </button>
                       </div>
