@@ -122,7 +122,7 @@ export default function CategoriesTab() {
           style={{
             display: "flex", alignItems: "center", gap: 8,
             padding: "0 18px", height: 40,
-            background: "#3b82f6", color: "#fff",
+            background: "#b91c1c", color: "#fff",
             border: "none", borderRadius: 8,
             fontSize: 13, fontWeight: 600, cursor: "pointer",
           }}
@@ -186,11 +186,11 @@ export default function CategoriesTab() {
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
                         <button
                           onClick={() => { setEditRow(row); setEditForm({ name: row.name }); setEditOpen(true); }}
-                          style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          style={{ width: 32, height: 32, border: "1px solid #e2e8f0", background: "#fff", borderRadius: 6, color: "#64748b", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                         ><EditOutlined style={{ width: 16, height: 16 }} /></button>
                         <button
                           onClick={() => { setDeleteTargetId(row.id); setDeleteOpen(true); }}
-                          style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          style={{ width: 32, height: 32, border: "1px solid #fecaca", background: "#fff", borderRadius: 6, color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                         ><DeleteOutlineOutlined style={{ width: 16, height: 16 }} /></button>
                       </div>
                     </td>
