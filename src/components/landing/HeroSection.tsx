@@ -30,10 +30,9 @@ export default function HeroSection() {
       <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
         <div style={{ position: "relative", width: "100%", maxWidth: 600, aspectRatio: "1/1" }}>
           <img 
-            src="/images/illustration.png" 
+            src="/images/hero-illustration.png" 
             alt="Hero Illustration" 
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            onError={(e: any) => e.target.src = "https://placehold.co/600x600?text=Hero+Illustration"}
           />
         </div>
       </div>
