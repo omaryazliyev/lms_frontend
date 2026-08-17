@@ -5,6 +5,8 @@ import PopularCourses from "@/components/landing/PopularCourses";
 import JoinSection from "@/components/landing/JoinSection";
 import OnlineBanner from "@/components/landing/OnlineBanner";
 import MentorsSection from "@/components/landing/MentorsSection";
+import ReviewsSection from "@/components/landing/ReviewsSection";
+import Footer from "@/components/landing/Footer";
 
 export default function Home() {
   return (
@@ -15,6 +17,8 @@ export default function Home() {
       <JoinSection />
       <OnlineBanner />
       <MentorsSection />
+      <ReviewsSection />
+      <Footer />
     </main>
   );
 }
