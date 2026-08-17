@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import Link from "next/link";
 import CourseCard from "./CourseCard";
 
 const filters = ["Barcha kurslar", "Dizayn", "Frontend", "Backend", "Mobil", "Full Stack", "Sun'iy intellekt", "Boshqalar"];
@@ -106,14 +107,16 @@ export default function PopularCourses() {
 
       {/* Show all button */}
       <div style={{ textAlign: "center", marginTop: 40 }}>
-        <button style={{
-          background: "#3b82f6", color: "#fff", border: "none",
-          borderRadius: 8, padding: "14px 36px", fontSize: 15,
-          fontWeight: 600, cursor: "pointer",
-          boxShadow: "0 4px 14px rgba(59, 130, 246, 0.35)"
-        }}>
-          Barcha kurslarni ko&apos;rish
-        </button>
+        <Link href="/courses" style={{ textDecoration: "none" }}>
+          <button style={{
+            background: "#3b82f6", color: "#fff", border: "none",
+            borderRadius: 8, padding: "14px 36px", fontSize: 15,
+            fontWeight: 600, cursor: "pointer",
+            boxShadow: "0 4px 14px rgba(59, 130, 246, 0.35)"
+          }}>
+            Barcha kurslarni ko&apos;rish
+          </button>
+        </Link>
       </div>
     </section>
   );
