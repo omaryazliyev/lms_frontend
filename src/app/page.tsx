@@ -2,6 +2,9 @@ import React from "react";
 import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import PopularCourses from "@/components/landing/PopularCourses";
+import JoinSection from "@/components/landing/JoinSection";
+import OnlineBanner from "@/components/landing/OnlineBanner";
+import MentorsSection from "@/components/landing/MentorsSection";
 
 export default function Home() {
   return (
@@ -9,6 +12,9 @@ export default function Home() {
       <Navbar />
       <HeroSection />
       <PopularCourses />
+      <JoinSection />
+      <OnlineBanner />
+      <MentorsSection />
     </main>
   );
 }
