@@ -18,15 +18,20 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// 401 xatoligini ushlash va loginga yo'naltirish
+// 401 xatoligini ushlash va loginga yo'naltirish (faqat himoyalangan sahifalardan)
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
             if (typeof window !== "undefined") {
-                localStorage.removeItem("access_token");
-                localStorage.removeItem("user_role");
-                window.location.href = "/login";
+                const publicPaths = ["/", "/login", "/register"];
+                const currentPath = window.location.pathname;
+                const isPublic = publicPaths.some(p => currentPath === p || currentPath.startsWith(p + "?"));
+                if (!isPublic) {
+                    localStorage.removeItem("access_token");
+                    localStorage.removeItem("user_role");
+                    window.location.href = "/login";
+                }
             }
         }
         return Promise.reject(error);
