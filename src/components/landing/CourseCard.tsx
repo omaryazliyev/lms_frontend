@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import FavoriteBorderOutlined from "@mui/icons-material/FavoriteBorderOutlined";
 import Star from "@mui/icons-material/Star";

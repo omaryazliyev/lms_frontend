@@ -50,17 +50,17 @@ export default function Navbar() {
         </div>
 
         <Link href="#about" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>Biz haqimizda</Link>
-        <Link href="#contact" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>Bog'lanish</Link>
+        <Link href="#contact" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>Bog&apos;lanish</Link>
       </div>
 
       {/* Actions */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         {/* Language Selector */}
         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 4, background: "#f1f5f9", padding: "8px 12px", borderRadius: 20, cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#334155" }} onClick={() => setLangOpen(!langOpen)}>
-          O'z <KeyboardArrowDownOutlined style={{ width: 16, height: 16 }} />
+          O&apos;z <KeyboardArrowDownOutlined style={{ width: 16, height: 16 }} />
           {langOpen && (
             <div style={{ position: "absolute", top: "110%", left: 0, background: "#fff", borderRadius: 8, boxShadow: "0 4px 6px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", width: "100%" }}>
-              <div style={{ padding: "8px 12px", fontSize: 14 }}>O'z</div>
+              <div style={{ padding: "8px 12px", fontSize: 14 }}>O&apos;z</div>
               <div style={{ padding: "8px 12px", fontSize: 14 }}>Ru</div>
             </div>
           )}
@@ -81,7 +81,7 @@ export default function Navbar() {
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
-            Kirish / Ro'yxatdan o'tish
+            Kirish / Ro&apos;yxatdan o&apos;tish
           </button>
         </Link>
       </div>

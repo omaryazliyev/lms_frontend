@@ -63,7 +63,7 @@ export default function PopularCourses() {
       <div style={{ textAlign: "center", marginBottom: 40 }}>
         <h2 style={{ fontSize: 36, fontWeight: 800, color: "#0f172a", marginBottom: 16 }}>Ommabop kurslar</h2>
         <p style={{ fontSize: 15, color: "#64748b", maxWidth: 700, margin: "0 auto", lineHeight: 1.6 }}>
-          Kasbga yo'naltirilgan praktikumlar yordamida eng tez va samarali yo'llar bilan mutaxassislar qatoriga qo'shiling. Har bir praktikum soha mutaxassislari tomonidan eng zamonaviy o'quv reja asosida tayyorlangan
+          Kasbga yo&apos;naltirilgan praktikumlar yordamida eng tez va samarali yo&apos;llar bilan mutaxassislar qatoriga qo&apos;shiling. Har bir praktikum soha mutaxassislari tomonidan eng zamonaviy o&apos;quv reja asosida tayyorlangan
         </p>
       </div>
 

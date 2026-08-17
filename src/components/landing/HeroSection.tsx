@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 
 export default function HeroSection() {
@@ -15,7 +16,7 @@ export default function HeroSection() {
           <span style={{ color: "#8b5cf6" }}>Kelajak</span> <span style={{ color: "#ef4444" }}>kasblarini</span> biz bilan o’rganing!
         </h1>
         <p style={{ fontSize: 18, color: "#475569", lineHeight: 1.6, marginBottom: 40, maxWidth: 480 }}>
-          Tekinga o’qib, pul ishlashga nima deysiz? Ishonmayapsizmi? Biz buni isbotlaymiz. Hammasi o’zingizga bog'liq.
+          Tekinga o&apos;qib, pul ishlashga nima deysiz? Ishonmayapsizmi? Biz buni isbotlaymiz. Hammasi o&apos;zingizga bog&apos;liq.
         </p>
         <button style={{ 
           background: "#3b82f6", color: "#fff", border: "none", borderRadius: 30, 
