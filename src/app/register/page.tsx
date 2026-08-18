@@ -13,7 +13,7 @@ import Smartphone from "@mui/icons-material/Smartphone";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import axios from "axios";
+import api from "../../api/axios";
 
 export default function Register() {
   const [step, setStep] = useState(1);
