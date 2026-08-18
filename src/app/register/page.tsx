@@ -96,10 +96,17 @@ export default function Register() {
 
     try {
       const cleanPhone = "+" + phone.replace(/[^\d]/g, "");
-      const res = await axios.post("http://localhost:3001/api/verify-otp", {
+      
+      const res = await api.post("/auth/register", {
+        full_name: fullName.trim(),
         phone: cleanPhone,
+        password,
         code: otp
       });
+
+      const { access_token, refresh_token } = res.data.data;
+      localStorage.setItem("access_token", access_token);
+      localStorage.setItem("refresh_token", refresh_token);
 
       if (res.data.success) {
         setLoading(false);
@@ -107,7 +114,12 @@ export default function Register() {
       }
     } catch (err: any) {
       setLoading(false);
-      setAlertState({ open: true, severity: "error", message: err?.response?.data?.message || "Tasdiqlashda xatolik yuz berdi" });
+      const msg = err?.response?.data?.message || "Tasdiqlashda xatolik yuz berdi";
+      setAlertState({ 
+        open: true, 
+        severity: "error", 
+        message: Array.isArray(msg) ? msg[0] : msg 
+      });
     }
   };
 
