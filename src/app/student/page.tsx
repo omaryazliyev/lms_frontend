@@ -55,15 +55,16 @@ export default function StudentDashboard() {
     }
   }, []);
 
-  // Faol kurslarni yuklash
+  // Faqat o'z kursini yuklash
   useEffect(() => {
-    api.get("/courses")
+    api.get("/student/my-course")
       .then(res => {
-        const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        const data = Array.isArray(res.data?.data) ? res.data.data : 
+                     Array.isArray(res.data) ? res.data : [];
         setCourses(data);
       })
       .catch(err => {
-        console.error("Kurslarni yuklashda xatolik:", err);
+        console.error("Kursni yuklashda xatolik:", err);
       })
       .finally(() => setLoading(false));
   }, []);
