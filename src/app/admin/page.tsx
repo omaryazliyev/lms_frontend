@@ -76,6 +76,37 @@ export default function AdminDashboard() {
   
   const [user, setUser] = useState<any>(null);
 
+  // Dashboard stats — backenddan haqiqiy sonlar
+  const [stats, setStats] = useState({
+    admins: 0, mentors: 0, assistants: 0, students: 0, courses: 0
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [usersRes, coursesRes] = await Promise.all([
+          api.get("/users/admin/all").catch(() => api.get("/users")),
+          api.get("/courses/admin/all").catch(() => api.get("/courses")),
+        ]);
+        const users: any[] = usersRes.data?.data || usersRes.data || [];
+        const courses: any[] = coursesRes.data?.data || coursesRes.data || [];
+        setStats({
+          admins:     users.filter((u: any) => u.role === "ADMIN" || u.role === "SUPERADMIN").length,
+          mentors:    users.filter((u: any) => u.role === "TEACHER").length,
+          assistants: users.filter((u: any) => u.role === "ASSISTANT").length,
+          students:   users.filter((u: any) => u.role === "STUDENT").length,
+          courses:    courses.length,
+        });
+      } catch (e) {
+        console.error("Stats yuklashda xatolik:", e);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
   // Sync state from URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -390,17 +421,19 @@ export default function AdminDashboard() {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 24 }}>
                 {[
-                  { label: "Jami Administratorlar", value: "3" },
-                  { label: "Jami Mentorlar",        value: "12" },
-                  { label: "Jami Assistentlar",     value: "24" },
-                  { label: "Jami O'quvchilar",      value: "400" },
-                  { label: "Jami Kurslar",          value: "12" },
+                  { label: "Jami Administratorlar", value: stats.admins },
+                  { label: "Jami Mentorlar",        value: stats.mentors },
+                  { label: "Jami Assistentlar",     value: stats.assistants },
+                  { label: "Jami O'quvchilar",      value: stats.students },
+                  { label: "Jami Kurslar",          value: stats.courses },
                 ].map(({ label, value }) => (
                   <div key={label} style={{
                     background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0",
                     padding: "20px 24px", display: "flex", flexDirection: "column", gap: 6,
                   }}>
-                    <div style={{ fontSize: 26, fontWeight: 700, color: "#000", lineHeight: 1.2 }}>{value}</div>
+                    <div style={{ fontSize: 26, fontWeight: 700, color: "#000", lineHeight: 1.2 }}>
+                      {statsLoading ? <span style={{ fontSize: 16, color: "#94a3b8" }}>...</span> : value}
+                    </div>
                     <div style={{ fontSize: 12, fontWeight: 500, color: "#334155" }}>{label}</div>
                   </div>
                 ))}
