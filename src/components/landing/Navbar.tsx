@@ -1,10 +1,14 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { KeyboardArrowDownOutlined, DarkModeOutlined } from "@mui/icons-material";
 
-export default function Navbar() {
+export default function Navbar({ solid = false }: { solid?: boolean }) {
   const [langOpen, setLangOpen] = useState(false);
+  const pathname = usePathname();
+  const isHome = pathname === "/";
+  const isCourses = pathname === "/courses";
 
   return (
     <nav style={{
@@ -12,8 +16,9 @@ export default function Navbar() {
       alignItems: "center",
       justifyContent: "space-between",
       padding: "20px 80px",
-      background: "transparent",
-      position: "absolute",
+      background: solid ? "#fff" : "transparent",
+      borderBottom: solid ? "2px solid #3b82f6" : "none",
+      position: solid ? "static" : "absolute",
       top: 0,
       left: 0,
       right: 0,
@@ -28,14 +33,35 @@ export default function Navbar() {
 
       {/* Nav Links */}
       <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
-        <Link href="/" style={{ textDecoration: "none", color: "#0f172a", fontWeight: 600, fontSize: 15, borderBottom: "2px solid #3b82f6", paddingBottom: 4 }}>Asosiy</Link>
+        <Link href="/" style={{
+          textDecoration: "none",
+          color: isHome ? "#0f172a" : "#475569",
+          fontWeight: isHome ? 600 : 500,
+          fontSize: 15,
+          borderBottom: isHome ? "2px solid #3b82f6" : "none",
+          paddingBottom: 4
+        }}>
+          Asosiy
+        </Link>
         
-        <Link href="/courses" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>
+        <Link href="/#courses" style={{
+          textDecoration: "none",
+          color: isCourses ? "#0f172a" : "#475569",
+          fontWeight: isCourses ? 600 : 500,
+          fontSize: 15,
+          borderBottom: isCourses ? "2px solid #3b82f6" : "none",
+          paddingBottom: 4
+        }}>
           Kurslar
         </Link>
 
-        <Link href="#about" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>Biz haqimizda</Link>
-        <Link href="#contact" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>Bog&apos;lanish</Link>
+        <Link href="/#about" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>
+          Biz haqimizda
+        </Link>
+        
+        <Link href="/#contact" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>
+          Bog&apos;lanish
+        </Link>
       </div>
 
       {/* Actions */}

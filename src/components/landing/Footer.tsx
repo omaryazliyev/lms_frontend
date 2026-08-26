@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer style={{ background: "#fff", borderTop: "1px solid #e2e8f0" }}>
+    <footer id="contact" style={{ background: "#fff", borderTop: "1px solid #e2e8f0" }}>
       {/* CTA Section */}
       <div style={{
         textAlign: "center",

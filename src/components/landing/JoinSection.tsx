@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function JoinSection() {
   return (
-    <section style={{ padding: "80px 80px", background: "#fff" }}>
+    <section id="about" style={{ padding: "80px 80px", background: "#fff" }}>
       <div style={{ marginBottom: 16 }}>
         <h2 style={{ fontSize: 32, fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>
           Bizga qo&apos;shiling

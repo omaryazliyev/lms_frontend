@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import api from "../../api/axios";
+import Navbar from "../../components/landing/Navbar";
 
 const filters = ["Barcha kurslar", "Dizayn", "Frontend", "Backend", "Mobil", "Full Stack", "Sun'iy intellekt", "Boshqalar"];
 
@@ -135,7 +136,6 @@ export default function CoursesPage() {
   const [activeFilter, setActiveFilter] = useState("Barcha kurslar");
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [langOpen, setLangOpen] = useState(false);
 
   useEffect(() => {
     api.get("/courses")
@@ -157,40 +157,7 @@ export default function CoursesPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
       {/* Navbar */}
-      <nav style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "18px 80px", background: "#fff",
-        borderBottom: "2px solid #3b82f6", position: "sticky", top: 0, zIndex: 100
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
-          <Link href="/" style={{ textDecoration: "none" }}>
-            <span style={{ fontSize: 26, fontWeight: 800, color: "#3b82f6" }}>iTlive<span style={{ fontSize: 32, lineHeight: 0 }}>.</span></span>
-          </Link>
-          {["Kurslar", "Biz haqimizda", "Bog\u02BFlanish"].map(item => (
-            <Link key={item} href="#" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>{item}</Link>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            style={{ display: "flex", alignItems: "center", gap: 4, background: "#f1f5f9", padding: "7px 12px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#334155", position: "relative" }}
-            onClick={() => setLangOpen(!langOpen)}
-          >
-            O&apos;z ▾
-            {langOpen && (
-              <div style={{ position: "absolute", top: "110%", left: 0, background: "#fff", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)", minWidth: 60, zIndex: 10 }}>
-                <div style={{ padding: "8px 12px", fontSize: 13 }}>O&apos;z</div>
-                <div style={{ padding: "8px 12px", fontSize: 13 }}>Ru</div>
-              </div>
-            )}
-          </div>
-          <Link href="/login" style={{ textDecoration: "none" }}>
-            <button style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-              Kirish / Ro&apos;yxatdan o&apos;tish
-            </button>
-          </Link>
-        </div>
-      </nav>
+      <Navbar solid={true} />
 
       {/* Content */}
       <div style={{ padding: "40px 80px 80px" }}>
