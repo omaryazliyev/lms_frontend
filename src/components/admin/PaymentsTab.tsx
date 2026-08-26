@@ -272,38 +272,17 @@ export default function PaymentsTab() {
                       {student.phone}
                     </td>
 
-                    {/* Course assignment */}
-                    <td style={{ padding: "12px 16px", minWidth: 180 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <SchoolOutlined style={{ width: 15, height: 15, color: "#94a3b8", flexShrink: 0 }} />
-                        <select
-                          value={student.courseId ?? ""}
-                          disabled={assigningId === student.id}
-                          onChange={e => {
-                            const val = e.target.value;
-                            handleAssignCourse(student.id, val ? Number(val) : null);
-                          }}
-                          style={{
-                            border: "1px solid #e2e8f0",
-                            borderRadius: 6,
-                            padding: "4px 8px",
-                            fontSize: 12,
-                            color: student.courseId ? "#0f172a" : "#94a3b8",
-                            outline: "none",
-                            background: "#f8fafc",
-                            cursor: "pointer",
-                            maxWidth: 140,
-                            fontWeight: student.courseId ? 600 : 400,
-                          }}
-                        >
-                          <option value="">— Tanlang —</option>
-                          {courses.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
-                        {assigningId === student.id && (
-                          <CircularProgress size={12} style={{ color: BLUE }} />
-                        )}
+                    {/* Course display */}
+                    <td style={{ padding: "12px 16px", minWidth: 150 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6.5 }}>
+                        <SchoolOutlined style={{ width: 16, height: 16, color: student.course?.name ? "#3b82f6" : "#94a3b8", flexShrink: 0 }} />
+                        <span style={{
+                          fontSize: 13,
+                          fontWeight: student.course?.name ? 600 : 400,
+                          color: student.course?.name ? "#1e293b" : "#94a3b8"
+                        }}>
+                          {student.course?.name || "—"}
+                        </span>
                       </div>
                     </td>
 
