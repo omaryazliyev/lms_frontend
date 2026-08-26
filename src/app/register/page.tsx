@@ -330,39 +330,107 @@ export default function Register() {
         </Alert>
       </Snackbar>
 
-      {/* Success Modal */}
+      {/* Success Modal (Telegram to'lov) */}
       {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[1px]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
           <div 
-            className="w-[380px] bg-white rounded-[24px] text-center shadow-2xl mx-4 flex flex-col items-center justify-between"
-            style={{ padding: "35px 30px 35px 30px", minHeight: "270px" }}
+            className="w-[90%] max-w-[480px] bg-white rounded-[24px] text-center shadow-2xl mx-4 flex flex-col items-center relative"
+            style={{ padding: "40px 36px 36px", animation: "modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
           >
-            <div className="w-16 h-16 bg-[#e6f4ea] rounded-full flex items-center justify-center">
-              <div className="w-11 h-11 bg-[#13c35b] rounded-full flex items-center justify-center text-white">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            {/* Close Button x */}
+            <button 
+              onClick={() => {
+                setShowSuccessModal(false);
+                window.location.href = "/login";
+              }}
+              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Telegram Icon Container */}
+            <div className="w-20 h-20 bg-[#e8f8f0] rounded-full flex items-center justify-center mb-6">
+              <div className="text-[#10b981] flex items-center justify-center">
+                {/* Paper Airplane Icon */}
+                <svg className="w-9 h-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                 </svg>
               </div>
             </div>
-            <h2 className="text-[16px] font-bold text-gray-900 leading-snug px-2">
-              Muvaffaqiyatli ro'yxatdan o'tdingiz
+
+            {/* Title */}
+            <h2 className="text-[22px] font-extrabold text-gray-900 leading-tight mb-4">
+              Ro'yxatdan muvaffaqiyatli o'tdingiz!
             </h2>
+
+            {/* Subtitle / Instructions */}
+            <p className="text-[14px] text-[#475569] leading-relaxed mb-8 px-2">
+              Kursni xarid qilish uchun adminga murojaat qiling:<br />
+              <a 
+                href="https://t.me/Sultonqulov99" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[#990011] font-extrabold text-[15px] hover:underline mt-1 inline-block"
+              >
+                @Sultonqulov99
+              </a>
+            </p>
+
+            {/* Primary Action Button */}
+            <a 
+              href="https://t.me/Sultonqulov99" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ textDecoration: "none", width: "100%" }}
+            >
+              <button
+                style={{
+                  height: "50px", 
+                  borderRadius: "10px", 
+                  backgroundColor: "#990011",
+                  boxShadow: "0 4px 14px rgba(153, 0, 17, 0.25)"
+                }}
+                className="w-full text-white text-[15px] font-bold hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer mb-5"
+              >
+                {/* Airplane icon */}
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+                Telegramga o'tish
+              </button>
+            </a>
+
+            {/* Flat Link (Later) */}
             <button
               onClick={() => {
                 setShowSuccessModal(false);
                 window.location.href = "/login";
               }}
-              style={{
-                height: "38px", borderRadius: "8px", backgroundColor: "rgba(59,129,244,1)",
-                paddingLeft: "32px", paddingRight: "32px",
-              }}
-              className="text-white text-[13px] font-semibold hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer"
+              className="text-[#64748b] hover:text-gray-900 text-[13px] font-semibold transition-colors cursor-pointer bg-none border-none outline-none"
             >
-              Kirish
+              Keyinroq
             </button>
           </div>
         </div>
       )}
+
+      {/* Animation Style */}
+      <style>{`
+        @keyframes modalIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
