@@ -45,10 +45,10 @@ export default function CoursesTab() {
 
   // Checkbox selection
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  // Active/Inactive map: courseId -> boolean (true = faol)
-  const [activeMap, setActiveMap] = useState<Record<number, boolean>>({});
 
   const [addOpen, setAddOpen] = useState(false);
+  const [activeMap, setActiveMap] = useState<Record<number, boolean>>({});
+
   const [editOpen, setEditOpen] = useState(false);
   const [editTargetId, setEditTargetId] = useState<number | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -95,7 +95,7 @@ export default function CoursesTab() {
     try {
       setLoading(true);
       const [cr, ct, ast] = await Promise.all([
-        api.get("/courses"),
+        api.get("/courses/admin/all"),   // admin: faol + nofaol hammasi
         api.get("/categories"),
         api.get("/assistant").catch(() => ({ data: [] }))
       ]);
@@ -103,14 +103,10 @@ export default function CoursesTab() {
       setCourses(coursesData);
       setCategories(ct.data);
       setAssistants(ast.data);
-      // Initialize all courses as Faol by default if not already set
-      setActiveMap(prev => {
-        const next = { ...prev };
-        coursesData.forEach((c: Course) => {
-          if (!(c.id in next)) next[c.id] = true;
-        });
-        return next;
-      });
+      // isActive holatini backenddan o'qib activeMap ga yozamiz
+      const map: Record<number, boolean> = {};
+      coursesData.forEach((c: any) => { map[c.id] = !!c.isActive; });
+      setActiveMap(map);
       
       const m = await api.get("/mentor").catch(() => ({ data: [] }));
       setMentors(m.data.length ? m.data : coursesData.map((c: any) => c.users?.map((u: any) => u.user)).flat());
@@ -241,12 +237,23 @@ export default function CoursesTab() {
     return <SectionsTab course={selectedCourse} onBack={goBack} />;
   }
 
-  // Toggle active state for a single selected course
+  // Toggle active state for a single selected course — API chaqiradi + tozalaydi
   const selectedOne = selectedIds.size === 1 ? [...selectedIds][0] : null;
-  const toggleActive = () => {
+  const toggleActive = async () => {
     if (selectedOne === null) return;
-    setActiveMap(prev => ({ ...prev, [selectedOne]: !prev[selectedOne] }));
+    try {
+      const res = await api.patch(`/courses/${selectedOne}/toggle-active`);
+      // Backenddan yangi isActive holatini olib activeMap ni yangilaymiz
+      setActiveMap(prev => ({ ...prev, [selectedOne]: res.data.isActive }));
+      // Checkboxni tozalaymiz
+      setSelectedIds(new Set());
+      // Ma'lumotlarni qayta yuklaymiz
+      await fetchAll();
+    } catch (e) {
+      console.error("Toggle xatosi:", e);
+    }
   };
+
 
   return (
     <div>

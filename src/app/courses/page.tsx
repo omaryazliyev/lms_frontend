@@ -140,7 +140,8 @@ export default function CoursesPage() {
   useEffect(() => {
     api.get("/courses")
       .then(res => {
-        const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        // Backend /courses faqat isActive:true kurslarni qaytaradi
+        const data: Course[] = Array.isArray(res.data) ? res.data : res.data?.data || [];
         setCourses(data);
       })
       .catch(err => {
