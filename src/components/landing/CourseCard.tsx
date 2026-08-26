@@ -56,11 +56,15 @@ export default function CourseCard({
         justifyContent: "center",
         overflow: "hidden"
       }}>
-        <img
-          src={bannerImg}
-          alt={title}
-          style={{ width: "55%", height: "80%", objectFit: "contain" }}
-        />
+        {bannerImg ? (
+          <img
+            src={bannerImg}
+            alt={title}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <div style={{ fontSize: 40 }}>📚</div>
+        )}
         {/* Badge */}
         <div style={{
           position: "absolute", top: 14, left: 14,

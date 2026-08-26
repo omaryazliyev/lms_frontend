@@ -5,9 +5,6 @@ import api from "../../api/axios";
 
 const filters = ["Barcha kurslar", "Dizayn", "Frontend", "Backend", "Mobil", "Full Stack", "Sun'iy intellekt", "Boshqalar"];
 
-const BACKEND_BASE = process.env.NEXT_PUBLIC_API_URL
-  ? process.env.NEXT_PUBLIC_API_URL.replace("/api/v1", "")
-  : "http://3.75.176.131:8080";
 
 interface Course {
   id: number;
@@ -54,7 +51,7 @@ function CourseCard({ course }: { course: Course }) {
   const [liked, setLiked] = useState(false);
 
   const bannerUrl = course.banner
-    ? `${BACKEND_BASE}/api/v1/uploads/images/${course.banner}`
+    ? `/api/v1/uploads/images/${course.banner}`
     : null;
   const mentorName = course.mentorProfile?.users?.full_name || "Mentor";
   const categoryName = course.categories?.name || "Boshqalar";

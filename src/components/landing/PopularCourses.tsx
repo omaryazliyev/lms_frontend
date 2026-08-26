@@ -1,67 +1,49 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import CourseCard from "./CourseCard";
+import api from "../../api/axios";
 
 const filters = ["Barcha kurslar", "Dizayn", "Frontend", "Backend", "Mobil", "Full Stack", "Sun'iy intellekt", "Boshqalar"];
 
-const mockCourses = [
-  {
-    id: 1,
-    bannerImg: "/images/courses/php.png",
-    bannerBg: "#e53935",
-    badgeText: "PHP, Laravel",
-    badgeColor: "#22c55e",
-    mentorName: "Oybek Safarov",
-    mentorImg: "",
-    title: "PHP, Laravel",
-    description: "SMM sohasini 0 dan o\u2019rganing va faoliyatingizni eng yaxshi kompaniyada olib boring",
-    rating: 4.5,
-    price: "250 000"
-  },
-  {
-    id: 2,
-    bannerImg: "/images/courses/react.png",
-    bannerBg: "#00bcd4",
-    badgeText: "JavaScript, React.js",
-    badgeColor: "#ec4899",
-    mentorName: "Oybek Safarov",
-    mentorImg: "",
-    title: "React.js",
-    description: "SMM sohasini 0 dan o\u2019rganing va faoliyatingizni eng yaxshi kompaniyada olib boring",
-    rating: 4.5,
-    price: "250 000"
-  },
-  {
-    id: 3,
-    bannerImg: "/images/courses/python.png",
-    bannerBg: "#1e88e5",
-    badgeText: "C++, Python",
-    badgeColor: "#ef4444",
-    mentorName: "Oybek Safarov",
-    mentorImg: "",
-    title: "C++",
-    description: "SMM sohasini 0 dan o\u2019rganing va faoliyatingizni eng yaxshi kompaniyada olib boring",
-    rating: 4.5,
-    price: "250 000"
-  },
-  {
-    id: 4,
-    bannerImg: "/images/courses/go.png",
-    bannerBg: "#1565c0",
-    badgeText: "C++",
-    badgeColor: "#eab308",
-    mentorName: "Oybek Safarov",
-    mentorImg: "",
-    title: "Go",
-    description: "SMM sohasini 0 dan o\u2019rganing va faoliyatingizni eng yaxshi kompaniyada olib boring",
-    rating: 4.5,
-    price: "250 000"
-  }
-];
+interface Course {
+  id: number;
+  name: string;
+  description: string;
+  prise: number;
+  level: string;
+  banner: string;
+  categories?: { name: string };
+  mentorProfile?: { users?: { full_name: string } };
+}
 
 export default function PopularCourses() {
   const [activeFilter, setActiveFilter] = useState("Barcha kurslar");
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get("/courses")
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        setCourses(data);
+      })
+      .catch(err => {
+        console.error("Kurslarni yuklashda xatolik:", err);
+        setCourses([]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = activeFilter === "Barcha kurslar"
+    ? courses
+    : courses.filter(c => c.categories?.name === activeFilter);
+
+  // Categories badge colors map
+  const badgeColors: Record<string, string> = {
+    Frontend: "#f97316", Backend: "#3b82f6", Dizayn: "#22c55e",
+    Mobil: "#8b5cf6", "Full Stack": "#ec4899", "Sun'iy intellekt": "#06b6d4", Boshqalar: "#64748b",
+  };
 
   return (
     <section style={{ padding: "80px 80px", background: "#f8fafc" }}>
@@ -99,11 +81,42 @@ export default function PopularCourses() {
       </div>
 
       {/* Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-        {mockCourses.map(course => (
-          <CourseCard key={course.id} {...course} />
-        ))}
-      </div>
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 250 }}>
+          <div style={{ width: 40, height: 40, border: "3px solid #e2e8f0", borderTop: "3px solid #3b82f6", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "60px 0", color: "#94a3b8", gridColumn: "span 3" }}>
+          <div style={{ fontSize: 50, marginBottom: 12 }}>📚</div>
+          <p style={{ fontSize: 16, fontWeight: 600 }}>Hozircha kurslar mavjud emas</p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+          {filtered.slice(0, 6).map(course => {
+            const categoryName = course.categories?.name || "Boshqalar";
+            const bannerUrl = course.banner
+              ? `/api/v1/uploads/images/${course.banner}`
+              : "";
+
+            return (
+              <CourseCard
+                key={course.id}
+                bannerImg={bannerUrl}
+                bannerBg="#1e3a5f"
+                badgeText={categoryName}
+                badgeColor={badgeColors[categoryName] || "#64748b"}
+                mentorName={course.mentorProfile?.users?.full_name || "Mentor"}
+                mentorImg=""
+                title={course.name}
+                description={course.description}
+                rating={4.5}
+                price={Number(course.prise).toLocaleString("uz-UZ")}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Show all button */}
       <div style={{ textAlign: "center", marginTop: 40 }}>
