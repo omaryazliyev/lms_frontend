@@ -210,7 +210,7 @@ export default function CoursesTab() {
       // Update local viewCourse object to show assigned instantly
       const updatedAssistant = assistants.find(a => a.id === Number(selectedAssistantId));
       if (updatedAssistant) {
-        setViewCourse({ ...viewCourse, user: { id: updatedAssistant.id, full_name: updatedAssistant.full_name } });
+        setViewCourse({ ...viewCourse, assistent: { id: updatedAssistant.id, full_name: updatedAssistant.full_name } });
       }
       setAssignAssistantOpen(false);
       setSuccessMsg("Muvaffaqiyatli o'zgartirildi");
@@ -807,20 +807,20 @@ export default function CoursesTab() {
                 </div>
                 <div>
                   <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>Kategoriya</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{viewCourse.categories?.name || "Yo'q"}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{viewCourse.category?.name || "Yo'q"}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>Mentor</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>
-                    {viewCourse.mentorProfile?.users?.full_name || 
+                    {viewCourse.mentorProfile?.user?.full_name || 
                      viewCourse.users?.find(u => u.user?.role === "MENTOR")?.user?.full_name || 
                      "Safarov Oybek"}
                   </div>
                 </div>
                 <div>
                   <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>Assistent</div>
-                  {viewCourse.user?.full_name ? (
-                     <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{viewCourse.user.full_name}</div>
+                  {viewCourse.assistent?.full_name ? (
+                     <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{viewCourse.assistent.full_name}</div>
                   ) : (
                     <button onClick={() => setAssignAssistantOpen(true)} style={{ 
                       padding: "6px 12px", background: "#3b82f6", color: "#fff", 
