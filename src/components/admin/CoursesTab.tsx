@@ -95,23 +95,26 @@ export default function CoursesTab() {
     try {
       setLoading(true);
       const [cr, ct, ast] = await Promise.all([
-        api.get("/courses/admin/all"),   // admin: faol + nofaol hammasi
+        // admin/all endpoint — mavjud bo'lmasa /courses ga fallback
+        api.get("/courses/admin/all").catch(() => api.get("/courses")),
         api.get("/categories"),
         api.get("/assistant").catch(() => ({ data: [] }))
       ]);
-      const coursesData: Course[] = cr.data;
+      const raw = cr.data;
+      const coursesData: Course[] = Array.isArray(raw) ? raw : raw?.data || [];
       setCourses(coursesData);
       setCategories(ct.data);
       setAssistants(ast.data);
       // isActive holatini backenddan o'qib activeMap ga yozamiz
       const map: Record<number, boolean> = {};
-      coursesData.forEach((c: any) => { map[c.id] = !!c.isActive; });
+      coursesData.forEach((c: any) => { map[c.id] = c.isActive === true; });
       setActiveMap(map);
       
       const m = await api.get("/mentor").catch(() => ({ data: [] }));
       setMentors(m.data.length ? m.data : coursesData.map((c: any) => c.users?.map((u: any) => u.user)).flat());
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
+
 
   useEffect(() => { fetchAll(); }, []);
 
