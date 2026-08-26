@@ -5,7 +5,6 @@ import { KeyboardArrowDownOutlined, DarkModeOutlined } from "@mui/icons-material
 
 export default function Navbar() {
   const [langOpen, setLangOpen] = useState(false);
-  const [coursesOpen, setCoursesOpen] = useState(false);
 
   return (
     <nav style={{
@@ -31,25 +30,9 @@ export default function Navbar() {
       <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
         <Link href="/" style={{ textDecoration: "none", color: "#0f172a", fontWeight: 600, fontSize: 15, borderBottom: "2px solid #3b82f6", paddingBottom: 4 }}>Asosiy</Link>
         
-        <div style={{ position: "relative" }} onMouseEnter={() => setCoursesOpen(true)} onMouseLeave={() => setCoursesOpen(false)}>
-          <Link href="/courses" style={{ textDecoration: "none" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#475569", fontWeight: 500, fontSize: 15, cursor: "pointer", paddingBottom: 4 }}>
-              Kurslar <KeyboardArrowDownOutlined style={{ width: 18, height: 18 }} />
-            </div>
-          </Link>
-          {coursesOpen && (
-            <div style={{
-              position: "absolute", top: "100%", left: 0, background: "#fff", borderRadius: 12,
-              boxShadow: "0 10px 25px rgba(0,0,0,0.1)", padding: "12px 0", minWidth: 160, display: "flex", flexDirection: "column"
-            }}>
-              {["UI/UX Dizayn", "Frontend", "Backend", "Python"].map(c => (
-                <Link key={c} href="/courses" style={{ textDecoration: "none", color: "#334155", padding: "10px 20px", fontSize: 14, fontWeight: 500, display: "block" }}>
-                  {c}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
+        <Link href="/courses" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>
+          Kurslar
+        </Link>
 
         <Link href="#about" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>Biz haqimizda</Link>
         <Link href="#contact" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>Bog&apos;lanish</Link>
