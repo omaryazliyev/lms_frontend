@@ -206,7 +206,10 @@ export default function CourseSinglePage({ params }: { params: any }) {
             </div>
 
             {/* Buy Button */}
-            <Link href="/register" style={{ textDecoration: "none" }}>
+            <Link 
+              href={`/register?courseId=${course.id}&courseName=${encodeURIComponent(course.name)}`}
+              style={{ textDecoration: "none" }}
+            >
               <button style={{
                 width: "100%", height: 46, background: "rgba(30,41,59,1)", color: "#fff",
                 border: "none", borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: "pointer",

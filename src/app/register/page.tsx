@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { 
   CircularProgress,
   Snackbar,
@@ -16,12 +17,16 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import api from "../../api/axios";
 
 export default function Register() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("+998");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
+  // URL dan courseId o'qiladi: /register?courseId=3
+  const [courseIdFromUrl, setCourseIdFromUrl] = useState<number | null>(null);
+  const [courseNameFromUrl, setCourseNameFromUrl] = useState<string>("");
   
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -32,6 +37,16 @@ export default function Register() {
     message: string;
   }>({ open: false, severity: "success", message: "" });
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // URL dan courseId va kurs nomini o'qish
+  useEffect(() => {
+    const id = searchParams.get("courseId");
+    const name = searchParams.get("courseName") || "";
+    if (id) {
+      setCourseIdFromUrl(Number(id));
+      setCourseNameFromUrl(decodeURIComponent(name));
+    }
+  }, [searchParams]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
@@ -101,7 +116,8 @@ export default function Register() {
         full_name: fullName.trim(),
         phone: cleanPhone,
         password,
-        code: otp
+        code: otp,
+        courseId: courseIdFromUrl ?? undefined,
       });
 
       const { access_token, refresh_token } = res.data.data;
@@ -158,7 +174,18 @@ export default function Register() {
                   Ro'yxatdan o'tish
                 </h1>
                 <form onSubmit={handleStep1Submit} className="flex flex-col" style={{ gap: 16 }}>
+                  {/* Kurs tanlangan bo'lsa ko'rsatish */}
+                  {courseIdFromUrl && courseNameFromUrl && (
+                    <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-200 rounded-[8px] px-3.5 py-2.5">
+                      <span className="text-[18px]">🎓</span>
+                      <div>
+                        <p className="text-[11px] text-blue-500 font-semibold mb-0.5">Tanlangan kurs</p>
+                        <p className="text-[13px] text-blue-800 font-bold leading-none">{courseNameFromUrl}</p>
+                      </div>
+                    </div>
+                  )}
                   {/* Full Name */}
+
                   <div>
                     <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
                       To'liq ismingizni kiriting <span className="text-red-500">*</span>
