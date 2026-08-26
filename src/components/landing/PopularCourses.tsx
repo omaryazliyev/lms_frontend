@@ -13,8 +13,8 @@ interface Course {
   prise: number;
   level: string;
   banner: string;
-  categories?: { name: string };
-  mentorProfile?: { users?: { full_name: string } };
+  category?: { name: string };
+  mentorProfile?: { user?: { full_name: string } };
 }
 
 export default function PopularCourses() {
@@ -37,7 +37,7 @@ export default function PopularCourses() {
 
   const filtered = activeFilter === "Barcha kurslar"
     ? courses
-    : courses.filter(c => c.categories?.name === activeFilter);
+    : courses.filter(c => c.category?.name === activeFilter);
 
   // Categories badge colors map
   const badgeColors: Record<string, string> = {
@@ -94,7 +94,7 @@ export default function PopularCourses() {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
           {filtered.slice(0, 6).map(course => {
-            const categoryName = course.categories?.name || "Boshqalar";
+            const categoryName = course.category?.name || "Boshqalar";
             const bannerUrl = course.banner
               ? `/api/v1/uploads/images/${course.banner}`
               : "";
@@ -106,7 +106,7 @@ export default function PopularCourses() {
                   bannerBg="#1e3a5f"
                   badgeText={categoryName}
                   badgeColor={badgeColors[categoryName] || "#64748b"}
-                  mentorName={course.mentorProfile?.users?.full_name || "Mentor"}
+                  mentorName={course.mentorProfile?.user?.full_name || "Mentor"}
                   mentorImg=""
                   title={course.name}
                   description={course.description}

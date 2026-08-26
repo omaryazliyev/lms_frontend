@@ -14,8 +14,8 @@ interface Course {
   prise: number;
   level: string;
   banner: string;
-  categories?: { name: string };
-  mentorProfile?: { users?: { full_name: string } };
+  category?: { name: string };
+  mentorProfile?: { user?: { full_name: string } };
 }
 
 function StarRating({ rating = 4.5 }: { rating?: number }) {
@@ -54,8 +54,8 @@ function CourseCard({ course }: { course: Course }) {
   const bannerUrl = course.banner
     ? `/api/v1/uploads/images/${course.banner}`
     : null;
-  const mentorName = course.mentorProfile?.users?.full_name || "Mentor";
-  const categoryName = course.categories?.name || "Boshqalar";
+  const mentorName = course.mentorProfile?.user?.full_name || "Mentor";
+  const categoryName = course.category?.name || "Boshqalar";
 
   const badgeColors: Record<string, string> = {
     Frontend: "#f97316", Backend: "#3b82f6", Dizayn: "#22c55e",
@@ -153,7 +153,7 @@ export default function CoursesPage() {
 
   const filtered = activeFilter === "Barcha kurslar"
     ? courses
-    : courses.filter(c => c.categories?.name === activeFilter);
+    : courses.filter(c => c.category?.name === activeFilter);
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc" }}>

@@ -25,10 +25,11 @@ type Course = {
   level: string;
   banner: string | null;
   intro_video: string | null;
-  categories?: { id: number; name: string };
-  mentorProfile?: { id: number; users: { id: number; full_name: string } };
-  user?: { id: number; full_name: string }; // Assistent
-  users: {
+  isActive?: boolean;
+  category?: { id: number; name: string };
+  mentorProfile?: { id: number; user: { id: number; full_name: string } };
+  assistent?: { id: number; full_name: string };
+  users?: {
     user: { id: number; full_name: string; role: string; file: string | null };
   }[];
 };
@@ -157,8 +158,8 @@ export default function CoursesTab() {
       name: course.name,
       description: course.description || "",
       price: String(course.prise || ""),
-      categoryId: String(course.categories?.id || ""),
-      mentorId: String(course.users?.[0]?.user?.id || ""), // Adjust depending on actual backend mentor link
+      categoryId: String(course.category?.id || ""),
+      mentorId: String(course.mentorProfile?.user?.id || ""),
       level: course.level || "BEGINNER",
     });
     setEditBannerFile(null);
@@ -464,7 +465,7 @@ export default function CoursesTab() {
                       {course.prise ? course.prise.toLocaleString() : "0"}
                     </td>
                     <td style={{ padding: "16px", fontSize: 13, color: "#3b82f6", fontWeight: 500, border: "1px solid #e2e8f0" }}>
-                      {course.categories?.name || "Kategoriyasiz"}
+                      {course.category?.name || "Kategoriyasiz"}
                     </td>
                     <td style={{ padding: "16px", border: "1px solid #e2e8f0" }}>
                       <span style={{ 
