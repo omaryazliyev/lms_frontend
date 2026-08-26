@@ -417,8 +417,8 @@ export default function Register() {
                 style={{
                   height: "50px", 
                   borderRadius: "10px", 
-                  backgroundColor: "#990011",
-                  boxShadow: "0 4px 14px rgba(153, 0, 17, 0.25)"
+                  backgroundColor: "#2563eb",
+                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.35)"
                 }}
                 className="w-full text-white text-[15px] font-bold hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer mb-5"
               >
