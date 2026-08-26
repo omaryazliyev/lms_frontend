@@ -370,18 +370,18 @@ export default function Register() {
             <p className="text-[14px] text-[#475569] leading-relaxed mb-8 px-2">
               Kursni xarid qilish uchun adminga murojaat qiling:<br />
               <a 
-                href="https://t.me/Sultonqulov99" 
+                href="https://t.me/yazliyevv" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-[#990011] font-extrabold text-[15px] hover:underline mt-1 inline-block"
               >
-                @Sultonqulov99
+                @yazliyevv
               </a>
             </p>
 
             {/* Primary Action Button */}
             <a 
-              href="https://t.me/Sultonqulov99" 
+              href="https://t.me/yazliyevv" 
               target="_blank" 
               rel="noopener noreferrer"
               style={{ textDecoration: "none", width: "100%" }}

@@ -204,7 +204,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* To'lov tasdiqlanmagan ogohlantirish qutisi (Warning Alert Box) */}
             {paymentWarning && (
               <div 
                 className="bg-[#fff1f2] border border-[#fecaca] rounded-[8px] p-4 text-[13px] text-[#990011] leading-relaxed text-left"
@@ -212,12 +211,12 @@ export default function Login() {
               >
                 To'lovingiz hali admin tomonidan tasdiqlanmagan. Iltimos, kuting yoki adminga murojaat qiling. Adminga murojaat:{" "}
                 <a 
-                  href="https://t.me/Sultonqulov99" 
+                  href="https://t.me/yazliyevv" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="font-extrabold hover:underline underline decoration-[#990011]"
                 >
-                  @Sultonqulov99
+                  @yazliyevv
                 </a>
               </div>
             )}
