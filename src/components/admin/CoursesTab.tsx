@@ -240,14 +240,14 @@ export default function CoursesTab() {
     return <SectionsTab course={selectedCourse} onBack={goBack} />;
   }
 
-  // Toggle active state for a single selected course — API chaqiradi + tozalaydi
-  const selectedOne = selectedIds.size === 1 ? [...selectedIds][0] : null;
+  // Toggle active state for ALL selected courses
   const toggleActive = async () => {
-    if (selectedOne === null) return;
+    if (selectedIds.size === 0) return;
     try {
-      const res = await api.patch(`/courses/${selectedOne}/toggle-active`);
-      // Backenddan yangi isActive holatini olib activeMap ni yangilaymiz
-      setActiveMap(prev => ({ ...prev, [selectedOne]: res.data.isActive }));
+      // Barcha tanlangan kurslarni parallel toggle qilamiz
+      await Promise.all(
+        [...selectedIds].map(id => api.patch(`/courses/${id}/toggle-active`))
+      );
       // Checkboxni tozalaymiz
       setSelectedIds(new Set());
       // Ma'lumotlarni qayta yuklaymiz
@@ -270,37 +270,46 @@ export default function CoursesTab() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {/* Toggle switch: only visible when exactly ONE course is checked */}
-          {selectedOne !== null && (
-            <div
-              onClick={toggleActive}
-              style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
-                background: "#f8fafc", border: "1px solid #e2e8f0",
-                borderRadius: 24, padding: "6px 14px 6px 6px",
-                userSelect: "none", transition: "all 0.2s" }}
-            >
-              {/* Pill Toggle */}
-              <div style={{
-                width: 44, height: 24, borderRadius: 12,
-                background: activeMap[selectedOne] ? "#3b82f6" : "#cbd5e1",
-                position: "relative", transition: "background 0.25s"
-              }}>
+          {/* Toggle switch: visible when ANY course is checked */}
+          {selectedIds.size > 0 && (() => {
+            // Agar bitta tanlangan bo'lsa, uning holatini ko'rsatamiz
+            const firstId = [...selectedIds][0];
+            const allActive = [...selectedIds].every(id => activeMap[id]);
+            const allInactive = [...selectedIds].every(id => !activeMap[id]);
+            return (
+              <div
+                onClick={toggleActive}
+                style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
+                  background: "#f8fafc", border: "1px solid #e2e8f0",
+                  borderRadius: 24, padding: "6px 14px 6px 6px",
+                  userSelect: "none", transition: "all 0.2s" }}
+              >
+                {/* Pill Toggle */}
                 <div style={{
-                  position: "absolute", top: 3, left: activeMap[selectedOne] ? 22 : 3,
-                  width: 18, height: 18, borderRadius: "50%",
-                  background: "#fff",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                  transition: "left 0.25s"
-                }} />
+                  width: 44, height: 24, borderRadius: 12,
+                  background: allActive ? "#3b82f6" : "#cbd5e1",
+                  position: "relative", transition: "background 0.25s"
+                }}>
+                  <div style={{
+                    position: "absolute", top: 3, left: allActive ? 22 : 3,
+                    width: 18, height: 18, borderRadius: "50%",
+                    background: "#fff",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                    transition: "left 0.25s"
+                  }} />
+                </div>
+                <span style={{
+                  fontSize: 13, fontWeight: 600,
+                  color: allActive ? "#16a34a" : "#dc2626"
+                }}>
+                  {selectedIds.size > 1
+                    ? `${selectedIds.size} ta kurs • ${allActive ? "Faol" : allInactive ? "Nofaol" : "Aralash"}`
+                    : allActive ? "Faollashtirildi" : "Nofaol"
+                  }
+                </span>
               </div>
-              <span style={{
-                fontSize: 13, fontWeight: 600,
-                color: activeMap[selectedOne] ? "#16a34a" : "#dc2626"
-              }}>
-                {activeMap[selectedOne] ? "Faollashtirildi" : "Nofaol"}
-              </span>
-            </div>
-          )}
+            );
+          })()}
           {!selectedCourse && (
             <button
               onClick={() => setAddOpen(true)}
