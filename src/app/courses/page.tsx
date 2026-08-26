@@ -1,123 +1,96 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import api from "../../api/axios";
 
 const filters = ["Barcha kurslar", "Dizayn", "Frontend", "Backend", "Mobil", "Full Stack", "Sun'iy intellekt", "Boshqalar"];
 
-const allCourses = [
-  {
-    id: 1,
-    bannerImg: "https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=800&q=80",
-    bannerBg: "#6d28d9",
-    badgeText: "UI/UX Dizayn",
-    badgeColor: "#22c55e",
-    category: "Dizayn",
-    mentorName: "Oybek Safarov",
-    title: "UI/UX Dizayn",
-    description: "SMM sohasini 0 dan o\u2019rganing va faoliyatingizni eng yaxshi kompaniyada olib boring",
-    rating: 4.5,
-    price: "250 000"
-  },
-  {
-    id: 2,
-    bannerImg: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&q=80",
-    bannerBg: "#0369a1",
-    badgeText: "Frontend",
-    badgeColor: "#f97316",
-    category: "Frontend",
-    mentorName: "Oybek Safarov",
-    title: "Frontend dasturlash",
-    description: "SMM sohasini 0 dan o\u2019rganing va faoliyatingizni eng yaxshi kompaniyada olib boring",
-    rating: 4.5,
-    price: "250 000"
-  },
-  {
-    id: 3,
-    bannerImg: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80",
-    bannerBg: "#1e3a5f",
-    badgeText: "Backend",
-    badgeColor: "#3b82f6",
-    category: "Backend",
-    mentorName: "Oybek Safarov",
-    title: "Backend dasturlash",
-    description: "SMM sohasini 0 dan o\u2019rganing va faoliyatingizni eng yaxshi kompaniyada olib boring",
-    rating: 4.5,
-    price: "250 000"
-  },
-  {
-    id: 4,
-    bannerImg: "https://images.unsplash.com/photo-1526498460520-4c246339dccb?w=800&q=80",
-    bannerBg: "#4c1d95",
-    badgeText: "Mobil",
-    badgeColor: "#8b5cf6",
-    category: "Mobil",
-    mentorName: "Oybek Safarov",
-    title: "Mobil dasturlash",
-    description: "SMM sohasini 0 dan o\u2019rganing va faoliyatingizni eng yaxshi kompaniyada olib boring",
-    rating: 4.5,
-    price: "250 000"
-  },
-  {
-    id: 5,
-    bannerImg: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&q=80",
-    bannerBg: "#be185d",
-    badgeText: "SMM",
-    badgeColor: "#ec4899",
-    category: "Boshqalar",
-    mentorName: "Oybek Safarov",
-    title: "SMM Marketing",
-    description: "SMM sohasini 0 dan o\u2019rganing va faoliyatingizni eng yaxshi kompaniyada olib boring",
-    rating: 4.5,
-    price: "250 000"
-  },
-  {
-    id: 6,
-    bannerImg: "https://images.unsplash.com/photo-1609921212029-bb5a28e60960?w=800&q=80",
-    bannerBg: "#065f46",
-    badgeText: "Grafik dizayn",
-    badgeColor: "#10b981",
-    category: "Dizayn",
-    mentorName: "Oybek Safarov",
-    title: "Grafik dizayn",
-    description: "SMM sohasini 0 dan o\u2019rganing va faoliyatingizni eng yaxshi kompaniyada olib boring",
-    rating: 4.5,
-    price: "250 000"
-  },
-];
+const BACKEND_BASE = process.env.NEXT_PUBLIC_API_URL
+  ? process.env.NEXT_PUBLIC_API_URL.replace("/api/v1", "")
+  : "http://3.75.176.131:8080";
 
-function CourseCard({ course }: { course: typeof allCourses[0] }) {
+interface Course {
+  id: number;
+  name: string;
+  description: string;
+  prise: number;
+  level: string;
+  banner: string;
+  categories?: { name: string };
+  mentorProfile?: { users?: { full_name: string } };
+}
+
+function StarRating({ rating = 4.5 }: { rating?: number }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+      {[1, 2, 3, 4, 5].map((i) => {
+        const filled = i <= Math.floor(rating);
+        const half = !filled && i === Math.ceil(rating) && rating % 1 !== 0;
+        return (
+          <svg key={i} width="15" height="15" viewBox="0 0 24 24">
+            {half ? (
+              <>
+                <defs>
+                  <linearGradient id={`h${i}`}>
+                    <stop offset="50%" stopColor="#fbbf24" />
+                    <stop offset="50%" stopColor="#e2e8f0" />
+                  </linearGradient>
+                </defs>
+                <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill={`url(#h${i})`} />
+              </>
+            ) : (
+              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill={filled ? "#fbbf24" : "#e2e8f0"} />
+            )}
+          </svg>
+        );
+      })}
+      <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600, marginLeft: 4 }}>({rating})</span>
+    </div>
+  );
+}
+
+function CourseCard({ course }: { course: Course }) {
   const [hovered, setHovered] = useState(false);
   const [liked, setLiked] = useState(false);
+
+  const bannerUrl = course.banner
+    ? `${BACKEND_BASE}/api/v1/uploads/images/${course.banner}`
+    : null;
+  const mentorName = course.mentorProfile?.users?.full_name || "Mentor";
+  const categoryName = course.categories?.name || "Boshqalar";
+
+  const badgeColors: Record<string, string> = {
+    Frontend: "#f97316", Backend: "#3b82f6", Dizayn: "#22c55e",
+    Mobil: "#8b5cf6", "Full Stack": "#ec4899", "Sun'iy intellekt": "#06b6d4", Boshqalar: "#64748b",
+  };
+  const badgeColor = badgeColors[categoryName] || "#64748b";
+
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: "#fff",
-        borderRadius: 16,
-        overflow: "hidden",
+        background: "#fff", borderRadius: 16, overflow: "hidden",
         boxShadow: hovered ? "0 12px 30px rgba(0,0,0,0.12)" : "0 2px 10px rgba(0,0,0,0.06)",
         transform: hovered ? "translateY(-4px)" : "translateY(0)",
-        transition: "all 0.25s ease",
-        cursor: "pointer",
-        display: "flex",
-        flexDirection: "column"
+        transition: "all 0.25s ease", cursor: "pointer",
+        display: "flex", flexDirection: "column"
       }}
     >
       {/* Banner */}
-      <div style={{ position: "relative", height: 210, background: course.bannerBg, overflow: "hidden" }}>
-        <img
-          src={course.bannerImg}
-          alt={course.title}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
+      <div style={{ position: "relative", height: 210, background: "#1e3a5f", overflow: "hidden" }}>
+        {bannerUrl ? (
+          <img src={bannerUrl} alt={course.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#1e3a5f,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 48 }}>📚</span>
+          </div>
+        )}
         <div style={{
-          position: "absolute", top: 14, left: 14,
-          background: course.badgeColor, color: "#fff",
-          padding: "4px 14px", borderRadius: 20,
-          fontSize: 12, fontWeight: 700
+          position: "absolute", top: 14, left: 14, background: badgeColor,
+          color: "#fff", padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700
         }}>
-          {course.badgeText}
+          {categoryName}
         </div>
       </div>
 
@@ -131,41 +104,29 @@ function CourseCard({ course }: { course: typeof allCourses[0] }) {
               display: "flex", alignItems: "center", justifyContent: "center",
               color: "#fff", fontSize: 12, fontWeight: 800
             }}>
-              {course.mentorName.charAt(0)}
+              {mentorName.charAt(0)}
             </div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{course.mentorName}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{mentorName}</span>
           </div>
-          <button
-            onClick={() => setLiked(!liked)}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}
-          >
+          <button onClick={() => setLiked(!liked)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill={liked ? "#ef4444" : "none"} stroke={liked ? "#ef4444" : "#94a3b8"} strokeWidth="2">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
           </button>
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>{course.title}</h3>
-        <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5, margin: 0, flex: 1 }}>{course.description}</p>
+        <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>{course.name}</h3>
+        <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5, margin: 0, flex: 1,
+          overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as any }}>
+          {course.description}
+        </p>
 
-        {/* Stars */}
-        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-          {[1,2,3,4].map(i => (
-            <svg key={i} width="15" height="15" viewBox="0 0 24 24" fill="#fbbf24">
-              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"></polygon>
-            </svg>
-          ))}
-          <svg width="15" height="15" viewBox="0 0 24 24">
-            <defs><linearGradient id="h2"><stop offset="50%" stopColor="#fbbf24"/><stop offset="50%" stopColor="#e2e8f0"/></linearGradient></defs>
-            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="url(#h2)"></polygon>
-          </svg>
-          <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600, marginLeft: 4 }}>({course.rating})</span>
-        </div>
+        <StarRating rating={4.5} />
 
         <div>
           <div style={{ fontSize: 11, color: "#94a3b8" }}>Kurs narxi:</div>
           <div style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
-            {course.price} <span style={{ fontSize: 13 }}>uzs</span>
+            {Number(course.prise).toLocaleString("uz-UZ")} <span style={{ fontSize: 13 }}>uzs</span>
           </div>
         </div>
       </div>
@@ -175,11 +136,26 @@ function CourseCard({ course }: { course: typeof allCourses[0] }) {
 
 export default function CoursesPage() {
   const [activeFilter, setActiveFilter] = useState("Barcha kurslar");
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
   const [langOpen, setLangOpen] = useState(false);
 
+  useEffect(() => {
+    api.get("/courses")
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        setCourses(data);
+      })
+      .catch(err => {
+        console.error("Kurslarni yuklashda xatolik:", err);
+        setCourses([]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
   const filtered = activeFilter === "Barcha kurslar"
-    ? allCourses
-    : allCourses.filter(c => c.category === activeFilter);
+    ? courses
+    : courses.filter(c => c.categories?.name === activeFilter);
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
@@ -193,15 +169,8 @@ export default function CoursesPage() {
           <Link href="/" style={{ textDecoration: "none" }}>
             <span style={{ fontSize: 26, fontWeight: 800, color: "#3b82f6" }}>iTlive<span style={{ fontSize: 32, lineHeight: 0 }}>.</span></span>
           </Link>
-          <div style={{ display: "flex", gap: 6, alignItems: "center", color: "#475569", cursor: "pointer" }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-          </div>
           {["Kurslar", "Biz haqimizda", "Bog\u02BFlanish"].map(item => (
-            <Link key={item} href="#" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>
-              {item}
-            </Link>
+            <Link key={item} href="#" style={{ textDecoration: "none", color: "#475569", fontWeight: 500, fontSize: 15 }}>{item}</Link>
           ))}
         </div>
 
@@ -218,11 +187,6 @@ export default function CoursesPage() {
               </div>
             )}
           </div>
-          <button style={{ border: "none", background: "#f1f5f9", width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-          </button>
           <Link href="/login" style={{ textDecoration: "none" }}>
             <button style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
               Kirish / Ro&apos;yxatdan o&apos;tish
@@ -258,9 +222,21 @@ export default function CoursesPage() {
         </div>
 
         {/* Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-          {filtered.map(course => <CourseCard key={course.id} course={course} />)}
-        </div>
+        {loading ? (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 300 }}>
+            <div style={{ width: 48, height: 48, border: "4px solid #e2e8f0", borderTop: "4px solid #3b82f6", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "80px 0", color: "#94a3b8" }}>
+            <div style={{ fontSize: 64, marginBottom: 16 }}>📚</div>
+            <p style={{ fontSize: 18, fontWeight: 600 }}>Hozircha kurslar mavjud emas</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+            {filtered.map(course => <CourseCard key={course.id} course={course} />)}
+          </div>
+        )}
       </div>
     </div>
   );
