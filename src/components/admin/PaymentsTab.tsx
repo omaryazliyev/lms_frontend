@@ -10,10 +10,14 @@ import {
 } from "@mui/material";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import HourglassEmptyOutlined from "@mui/icons-material/HourglassEmptyOutlined";
-import EditOutlined from "@mui/icons-material/EditOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
-import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
+import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
+
+interface Course {
+  id: number;
+  name: string;
+}
 
 interface Student {
   id: number;
@@ -23,6 +27,8 @@ interface Student {
   file?: string;
   isPaid: boolean;
   create_at: string;
+  courseId?: number | null;
+  course?: { id: number; name: string } | null;
 }
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -30,11 +36,13 @@ const BLUE = "#3b82f6";
 
 export default function PaymentsTab() {
   const [students, setStudents] = useState<Student[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [assigningId, setAssigningId] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [alert, setAlert] = useState<{ open: boolean; msg: string; sev: "success" | "error" }>({
     open: false, msg: "", sev: "success",
@@ -53,7 +61,20 @@ export default function PaymentsTab() {
     }
   }, []);
 
-  useEffect(() => { fetchStudents(); }, [fetchStudents]);
+  const fetchCourses = useCallback(async () => {
+    try {
+      const res = await api.get("/courses");
+      const data = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+      setCourses(data);
+    } catch {
+      console.error("Kurslarni yuklab bo'lmadi");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStudents();
+    fetchCourses();
+  }, [fetchStudents, fetchCourses]);
 
   const handleTogglePaid = async (student: Student) => {
     setTogglingId(student.id);
@@ -62,7 +83,6 @@ export default function PaymentsTab() {
       setStudents(prev =>
         prev.map(s => s.id === student.id ? { ...s, isPaid: res.data.isPaid } : s)
       );
-      // Tasdiqlanganda chiroyli modal chiqarish
       if (res.data.isPaid) {
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 2500);
@@ -73,6 +93,25 @@ export default function PaymentsTab() {
       setAlert({ open: true, msg: "Xatolik yuz berdi", sev: "error" });
     } finally {
       setTogglingId(null);
+    }
+  };
+
+  const handleAssignCourse = async (studentId: number, courseId: number | null) => {
+    setAssigningId(studentId);
+    try {
+      await api.patch(`/student/${studentId}/assign-course`, { courseId });
+      setStudents(prev =>
+        prev.map(s => {
+          if (s.id !== studentId) return s;
+          const foundCourse = courses.find(c => c.id === courseId) || null;
+          return { ...s, courseId, course: foundCourse };
+        })
+      );
+      setAlert({ open: true, msg: "Kurs muvaffaqiyatli belgilandi!", sev: "success" });
+    } catch {
+      setAlert({ open: true, msg: "Kursni belgilashda xatolik", sev: "error" });
+    } finally {
+      setAssigningId(null);
     }
   };
 
@@ -87,7 +126,6 @@ export default function PaymentsTab() {
     }
   };
 
-  // Filter
   const filtered = students.filter(s =>
     s.full_name?.toLowerCase().includes(search.toLowerCase()) ||
     s.phone?.includes(search)
@@ -124,7 +162,6 @@ export default function PaymentsTab() {
 
       {/* Toolbar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 12 }}>
-        {/* Search */}
         <div style={{ position: "relative", maxWidth: 300, flex: 1 }}>
           <SearchOutlined style={{
             position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
@@ -142,7 +179,6 @@ export default function PaymentsTab() {
           />
         </div>
 
-        {/* Stats chips */}
         <div style={{ display: "flex", gap: 8 }}>
           <div style={{
             padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600,
@@ -173,7 +209,7 @@ export default function PaymentsTab() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#f8fafc" }}>
-                  {["ID", "Sotib oluvchi", "Telefon", "Ro'yxatdan o'tgan", "Holati", "Tasdiqlash", "Amallar"].map(h => (
+                  {["ID", "Talaba", "Telefon", "Tanlangan kurs", "Holati", "Tasdiqlash", "Amallar"].map(h => (
                     <th key={h} style={{
                       padding: "12px 16px", textAlign: "left", fontSize: 12,
                       fontWeight: 700, color: "#64748b", borderBottom: "1px solid #e2e8f0",
@@ -212,9 +248,12 @@ export default function PaymentsTab() {
                         }}>
                           {initials(student.full_name)}
                         </Avatar>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>
-                          {student.full_name}
-                        </span>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>
+                            {student.full_name}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#94a3b8" }}>{formatDate(student.create_at)}</div>
+                        </div>
                       </div>
                     </td>
 
@@ -223,9 +262,39 @@ export default function PaymentsTab() {
                       {student.phone}
                     </td>
 
-                    {/* Date */}
-                    <td style={{ padding: "12px 16px", fontSize: 12, color: "#64748b" }}>
-                      {formatDate(student.create_at)}
+                    {/* Course assignment */}
+                    <td style={{ padding: "12px 16px", minWidth: 180 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <SchoolOutlined style={{ width: 15, height: 15, color: "#94a3b8", flexShrink: 0 }} />
+                        <select
+                          value={student.courseId ?? ""}
+                          disabled={assigningId === student.id}
+                          onChange={e => {
+                            const val = e.target.value;
+                            handleAssignCourse(student.id, val ? Number(val) : null);
+                          }}
+                          style={{
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 6,
+                            padding: "4px 8px",
+                            fontSize: 12,
+                            color: student.courseId ? "#0f172a" : "#94a3b8",
+                            outline: "none",
+                            background: "#f8fafc",
+                            cursor: "pointer",
+                            maxWidth: 140,
+                            fontWeight: student.courseId ? 600 : 400,
+                          }}
+                        >
+                          <option value="">— Tanlang —</option>
+                          {courses.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                        {assigningId === student.id && (
+                          <CircularProgress size={12} style={{ color: BLUE }} />
+                        )}
+                      </div>
                     </td>
 
                     {/* Status badge */}
@@ -251,7 +320,7 @@ export default function PaymentsTab() {
                       )}
                     </td>
 
-                    {/* Toggle button */}
+                    {/* Toggle paid button */}
                     <td style={{ padding: "12px 16px" }}>
                       <button
                         onClick={() => handleTogglePaid(student)}
@@ -286,21 +355,19 @@ export default function PaymentsTab() {
 
                     {/* Actions */}
                     <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button
-                          onClick={() => handleDelete(student.id)}
-                          style={{
-                            width: 30, height: 30, borderRadius: 7,
-                            border: "1px solid #fecaca", background: "#fff",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            cursor: "pointer", transition: "all 0.2s"
-                          }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fee2e2"; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
-                        >
-                          <DeleteOutlined style={{ width: 15, height: 15, color: "#ef4444" }} />
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleDelete(student.id)}
+                        style={{
+                          width: 30, height: 30, borderRadius: 7,
+                          border: "1px solid #fecaca", background: "#fff",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer", transition: "all 0.2s"
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fee2e2"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                      >
+                        <DeleteOutlined style={{ width: 15, height: 15, color: "#ef4444" }} />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -415,7 +482,6 @@ export default function PaymentsTab() {
               minWidth: 320,
             }}
           >
-            {/* Yashil doira + check icon */}
             <div style={{
               width: 80, height: 80, borderRadius: "50%",
               background: "linear-gradient(135deg, #22c55e, #16a34a)",
@@ -423,23 +489,17 @@ export default function PaymentsTab() {
               boxShadow: "0 8px 24px rgba(34,197,94,0.35)",
               animation: "ringPulse 0.4s ease",
             }}>
-              <svg
-                width="40" height="40" viewBox="0 0 24 24"
+              <svg width="40" height="40" viewBox="0 0 24 24"
                 fill="none" stroke="#fff" strokeWidth="2.8"
                 strokeLinecap="round" strokeLinejoin="round"
               >
-                <path
-                  d="M5 13l4 4L19 7"
-                  style={{
-                    strokeDasharray: 60,
-                    strokeDashoffset: 0,
-                    animation: "checkDraw 0.4s 0.2s ease both",
-                  }}
-                />
+                <path d="M5 13l4 4L19 7" style={{
+                  strokeDasharray: 60,
+                  strokeDashoffset: 0,
+                  animation: "checkDraw 0.4s 0.2s ease both",
+                }} />
               </svg>
             </div>
-
-            {/* Matn */}
             <div style={{ textAlign: "center" }}>
               <p style={{
                 fontSize: 22, fontWeight: 800, color: "#0f172a",
