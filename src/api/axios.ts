@@ -24,7 +24,7 @@ api.interceptors.response.use(
     (error) => {
         if (error.response && error.response.status === 401) {
             if (typeof window !== "undefined") {
-                const publicPaths = ["/", "/login", "/register"];
+                const publicPaths = ["/", "/login", "/register", "/courses"];
                 const currentPath = window.location.pathname;
                 const isPublic = publicPaths.some(p => currentPath === p || currentPath.startsWith(p + "?"));
                 if (!isPublic) {
