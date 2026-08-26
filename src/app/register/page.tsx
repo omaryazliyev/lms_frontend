@@ -175,16 +175,6 @@ export default function Register() {
                   Ro'yxatdan o'tish
                 </h1>
                 <form onSubmit={handleStep1Submit} className="flex flex-col" style={{ gap: 16 }}>
-                  {/* Kurs tanlangan bo'lsa ko'rsatish */}
-                  {courseIdFromUrl && courseNameFromUrl && (
-                    <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-200 rounded-[8px] px-3.5 py-2.5">
-                      <span className="text-[18px]">🎓</span>
-                      <div>
-                        <p className="text-[11px] text-blue-500 font-semibold mb-0.5">Tanlangan kurs</p>
-                        <p className="text-[13px] text-blue-800 font-bold leading-none">{courseNameFromUrl}</p>
-                      </div>
-                    </div>
-                  )}
                   {/* Full Name */}
 
                   <div>
