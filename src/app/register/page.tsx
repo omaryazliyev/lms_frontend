@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import api from "../../api/axios";
 import { 
   CircularProgress,
   Snackbar,
@@ -14,20 +14,19 @@ import Smartphone from "@mui/icons-material/Smartphone";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import api from "../../api/axios";
 
 export default function Register() {
-  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("+998");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
-  // URL dan courseId o'qiladi: /register?courseId=3
+
+  // URL dan courseId o'qish — window.location.search ishonchli usul
   const [courseIdFromUrl, setCourseIdFromUrl] = useState<number | null>(null);
   const [courseNameFromUrl, setCourseNameFromUrl] = useState<string>("");
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,15 +37,17 @@ export default function Register() {
   }>({ open: false, severity: "success", message: "" });
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // URL dan courseId va kurs nomini o'qish
   useEffect(() => {
-    const id = searchParams.get("courseId");
-    const name = searchParams.get("courseName") || "";
-    if (id) {
-      setCourseIdFromUrl(Number(id));
-      setCourseNameFromUrl(decodeURIComponent(name));
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("courseId");
+      const name = params.get("courseName") || "";
+      if (id) {
+        setCourseIdFromUrl(Number(id));
+        setCourseNameFromUrl(decodeURIComponent(name));
+      }
     }
-  }, [searchParams]);
+  }, []);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;

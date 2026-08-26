@@ -44,6 +44,8 @@ export default function PaymentsTab() {
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [assigningId, setAssigningId] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<number | null>(null);
   const [alert, setAlert] = useState<{ open: boolean; msg: string; sev: "success" | "error" }>({
     open: false, msg: "", sev: "success",
   });
@@ -115,14 +117,22 @@ export default function PaymentsTab() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Talabani o'chirishni xohlaysizmi?")) return;
+  const handleDelete = (id: number) => {
+    setStudentToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!studentToDelete) return;
     try {
-      await api.delete(`/student/${id}`);
-      setStudents(prev => prev.filter(s => s.id !== id));
+      await api.delete(`/student/${studentToDelete}`);
+      setStudents(prev => prev.filter(s => s.id !== studentToDelete));
       setAlert({ open: true, msg: "Talaba o'chirildi", sev: "success" });
     } catch {
       setAlert({ open: true, msg: "O'chirishda xatolik", sev: "error" });
+    } finally {
+      setDeleteConfirmOpen(false);
+      setStudentToDelete(null);
     }
   };
 
@@ -510,6 +520,102 @@ export default function PaymentsTab() {
               <p style={{ fontSize: 14, color: "#64748b", margin: "8px 0 0" }}>
                 Talaba endi tizimga kira oladi
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* O'chirishni tasdiqlash modali */}
+      {deleteConfirmOpen && (
+        <div
+          onClick={() => setDeleteConfirmOpen(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(15, 23, 42, 0.3)",
+            backdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            animation: "fadeIn 0.2s ease",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#fff",
+              borderRadius: 20,
+              padding: "36px",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 20,
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.15)",
+              animation: "popIn 0.3s cubic-bezier(.34,1.56,.64,1)",
+              maxWidth: 400,
+              width: "90%",
+            }}
+          >
+            {/* Warning Trash Icon Container */}
+            <div style={{
+              width: 72, height: 72, borderRadius: "50%",
+              background: "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#ef4444", boxShadow: "0 8px 20px rgba(239,68,68,0.12)"
+            }}>
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </div>
+
+            {/* Modal Text */}
+            <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 8 }}>
+              <h3 style={{
+                fontSize: 19, fontWeight: 800, color: "#0f172a",
+                margin: 0, letterSpacing: -0.3
+              }}>
+                Talabani o'chirish
+              </h3>
+              <p style={{ fontSize: 14, color: "#64748b", margin: 0, lineHeight: 1.5 }}>
+                Haqiqatan ham ushbu talabani tizimdan o'chirib tashlamoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.
+              </p>
+            </div>
+
+            {/* Buttons Row */}
+            <div style={{ display: "flex", gap: 12, width: "100%", marginTop: 8 }}>
+              <button
+                onClick={() => setDeleteConfirmOpen(false)}
+                style={{
+                  flex: 1, height: 44, borderRadius: 10,
+                  border: "1px solid #e2e8f0", background: "#fff",
+                  color: "#64748b", fontSize: 14, fontWeight: 700,
+                  cursor: "pointer", transition: "all 0.2s",
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "#f8fafc";
+                  e.currentTarget.style.color = "#0f172a";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "#fff";
+                  e.currentTarget.style.color = "#64748b";
+                }}
+              >
+                Bekor qilish
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  flex: 1, height: 44, borderRadius: 10,
+                  border: "none", background: "#ef4444",
+                  color: "#fff", fontSize: 14, fontWeight: 700,
+                  cursor: "pointer", transition: "all 0.2s",
+                  boxShadow: "0 4px 12px rgba(239,68,68,0.25)"
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "#dc2626";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "#ef4444";
+                }}
+              >
+                O'chirish
+              </button>
             </div>
           </div>
         </div>
