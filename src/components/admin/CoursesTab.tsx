@@ -43,6 +43,11 @@ export default function CoursesTab() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
 
+  // Checkbox selection
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  // Active/Inactive map: courseId -> boolean (true = faol)
+  const [activeMap, setActiveMap] = useState<Record<number, boolean>>({});
+
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editTargetId, setEditTargetId] = useState<number | null>(null);
@@ -94,12 +99,21 @@ export default function CoursesTab() {
         api.get("/categories"),
         api.get("/assistant").catch(() => ({ data: [] }))
       ]);
-      setCourses(cr.data);
+      const coursesData: Course[] = cr.data;
+      setCourses(coursesData);
       setCategories(ct.data);
       setAssistants(ast.data);
+      // Initialize all courses as Faol by default if not already set
+      setActiveMap(prev => {
+        const next = { ...prev };
+        coursesData.forEach((c: Course) => {
+          if (!(c.id in next)) next[c.id] = true;
+        });
+        return next;
+      });
       
       const m = await api.get("/mentor").catch(() => ({ data: [] }));
-      setMentors(m.data.length ? m.data : cr.data.map((c: any) => c.users?.map((u: any) => u.user)).flat());
+      setMentors(m.data.length ? m.data : coursesData.map((c: any) => c.users?.map((u: any) => u.user)).flat());
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -227,6 +241,13 @@ export default function CoursesTab() {
     return <SectionsTab course={selectedCourse} onBack={goBack} />;
   }
 
+  // Toggle active state for a single selected course
+  const selectedOne = selectedIds.size === 1 ? [...selectedIds][0] : null;
+  const toggleActive = () => {
+    if (selectedOne === null) return;
+    setActiveMap(prev => ({ ...prev, [selectedOne]: !prev[selectedOne] }));
+  };
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
@@ -238,21 +259,54 @@ export default function CoursesTab() {
             <span style={{ color: "#475569", fontWeight: 500 }}>Barcha kurslar</span>
           </div>
         </div>
-        {!selectedCourse && (
-          <button
-            onClick={() => setAddOpen(true)}
-            style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "0 18px", height: 40,
-              background: "#3b82f6", color: "#fff",
-              border: "none", borderRadius: 8,
-              fontSize: 13, fontWeight: 600, cursor: "pointer",
-            }}
-          >
-            <AddCircleOutlineOutlined style={{ width: 18, height: 18 }} />
-            Qo'shish
-          </button>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Toggle switch: only visible when exactly ONE course is checked */}
+          {selectedOne !== null && (
+            <div
+              onClick={toggleActive}
+              style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
+                background: "#f8fafc", border: "1px solid #e2e8f0",
+                borderRadius: 24, padding: "6px 14px 6px 6px",
+                userSelect: "none", transition: "all 0.2s" }}
+            >
+              {/* Pill Toggle */}
+              <div style={{
+                width: 44, height: 24, borderRadius: 12,
+                background: activeMap[selectedOne] ? "#3b82f6" : "#cbd5e1",
+                position: "relative", transition: "background 0.25s"
+              }}>
+                <div style={{
+                  position: "absolute", top: 3, left: activeMap[selectedOne] ? 22 : 3,
+                  width: 18, height: 18, borderRadius: "50%",
+                  background: "#fff",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                  transition: "left 0.25s"
+                }} />
+              </div>
+              <span style={{
+                fontSize: 13, fontWeight: 600,
+                color: activeMap[selectedOne] ? "#16a34a" : "#dc2626"
+              }}>
+                {activeMap[selectedOne] ? "Faollashtirildi" : "Nofaol"}
+              </span>
+            </div>
+          )}
+          {!selectedCourse && (
+            <button
+              onClick={() => setAddOpen(true)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "0 18px", height: 40,
+                background: "#e11d48", color: "#fff",
+                border: "none", borderRadius: 8,
+                fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}
+            >
+              <AddCircleOutlineOutlined style={{ width: 18, height: 18 }} />
+              + Qo&apos;shish
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{
@@ -288,7 +342,15 @@ export default function CoursesTab() {
             <thead>
               <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", borderTop: "1px solid #e2e8f0" }}>
                 <th style={{ padding: "14px 16px", width: 50, border: "1px solid #e2e8f0" }}>
-                  <input type="checkbox" style={{ cursor: "pointer" }} />
+                  <input
+                    type="checkbox"
+                    style={{ cursor: "pointer" }}
+                    checked={filtered.length > 0 && filtered.every(c => selectedIds.has(c.id))}
+                    onChange={e => {
+                      if (e.target.checked) setSelectedIds(new Set(filtered.map(c => c.id)));
+                      else setSelectedIds(new Set());
+                    }}
+                  />
                 </th>
                 {selectedCourse ? (
                   <>
@@ -349,8 +411,22 @@ export default function CoursesTab() {
                     onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
                     onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
                   >
-                    <td style={{ padding: "16px", border: "1px solid #e2e8f0", textAlign: "center" }}>
-                      <input type="checkbox" style={{ cursor: "pointer" }} />
+                    <td style={{ padding: "16px", border: "1px solid #e2e8f0", textAlign: "center" }}
+                      onClick={e => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        style={{ cursor: "pointer", width: 16, height: 16 }}
+                        checked={selectedIds.has(course.id)}
+                        onChange={e => {
+                          e.stopPropagation();
+                          setSelectedIds(prev => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(course.id);
+                            else next.delete(course.id);
+                            return next;
+                          });
+                        }}
+                      />
                     </td>
                     <td style={{ padding: "16px", border: "1px solid #e2e8f0", textAlign: "center" }}>
                       {course.banner ? (
@@ -375,9 +451,10 @@ export default function CoursesTab() {
                       <span style={{ 
                         display: "inline-flex", padding: "4px 10px", borderRadius: 20, 
                         fontSize: 12, fontWeight: 600, 
-                        background: "#dcfce7", color: "#16a34a" 
+                        background: activeMap[course.id] !== false ? "#dcfce7" : "#fee2e2",
+                        color: activeMap[course.id] !== false ? "#16a34a" : "#dc2626"
                       }}>
-                        Faol
+                        {activeMap[course.id] !== false ? "Faol" : "Nofaol"}
                       </span>
                     </td>
                     <td style={{ padding: "16px", border: "1px solid #e2e8f0" }}>
