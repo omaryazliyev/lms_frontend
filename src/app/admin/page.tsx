@@ -22,6 +22,7 @@ import CoursesTab from "../../components/admin/CoursesTab";
 import SectionsTab from "../../components/admin/SectionsTab";
 import LessonsTab from "../../components/admin/LessonsTab";
 import ProfilePage from "../../components/admin/ProfilePage";
+import PaymentsTab from "../../components/admin/PaymentsTab";
 
 type SubItem = { label: string };
 type NavItem = {
@@ -461,6 +462,7 @@ export default function AdminDashboard() {
               Tez orada qo'shiladi...
             </div>
           )}
+          {!showProfile && activeNav === "To'lovlar" && <PaymentsTab />}
         </main>
       </div>
     </div>
