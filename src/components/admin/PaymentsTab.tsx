@@ -8,7 +8,7 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import HourglassEmptyOutlined from "@mui/icons-material/HourglassEmptyOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
@@ -236,7 +236,7 @@ export default function PaymentsTab() {
                           padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600,
                           background: "#dcfce7", color: "#16a34a", border: "1px solid #bbf7d0"
                         }}>
-                          <CheckCircleOutlineIcon style={{ width: 13, height: 13 }} />
+                          <CheckCircleOutlined style={{ width: 13, height: 13 }} />
                           Tasdiqlangan
                         </span>
                       ) : (
@@ -279,7 +279,7 @@ export default function PaymentsTab() {
                         ) : student.isPaid ? (
                           <>✕ Bekor qilish</>
                         ) : (
-                          <><CheckCircleOutlineIcon style={{ width: 13, height: 13 }} /> Tasdiqlash</>
+                          <><CheckCircleOutlined style={{ width: 13, height: 13 }} /> Tasdiqlash</>
                         )}
                       </button>
                     </td>

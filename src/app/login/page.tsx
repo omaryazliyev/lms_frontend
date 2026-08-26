@@ -301,30 +301,3 @@ export default function Login() {
   );
 }
 
-      {/* MUI Alert */}
-      <Snackbar
-        open={alertState.open}
-        autoHideDuration={4000}
-        onClose={handleCloseAlert}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={handleCloseAlert}
-          severity={alertState.severity}
-          variant="filled"
-          sx={{
-            width: "100%",
-            borderRadius: "8px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            fontFamily: "inherit",
-            fontSize: "14px",
-            fontWeight: "500",
-          }}
-        >
-          {alertState.message}
-        </Alert>
-      </Snackbar>
-
-    </div>
-  );
-}
