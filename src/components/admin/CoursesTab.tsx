@@ -304,7 +304,7 @@ export default function CoursesTab() {
               style={{
                 display: "flex", alignItems: "center", gap: 8,
                 padding: "0 18px", height: 40,
-                background: "#e11d48", color: "#fff",
+                background: "#3b82f6", color: "#fff",
                 border: "none", borderRadius: 8,
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
               }}
