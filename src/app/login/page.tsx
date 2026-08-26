@@ -145,28 +145,23 @@ export default function Login() {
         </div>
 
         {/* Form Container */}
-        <div className="w-full max-w-[370px] mx-auto px-8">
-          {/* Title Section */}
-          <div className="text-center" style={{ marginBottom: 30 }}>
-            <h1 className="text-[30px] font-extrabold text-[#0f172a] tracking-tight leading-none mb-2">
-              Xush kelibsiz!
-            </h1>
-            <p className="text-[14px] text-gray-500 font-medium">
-              Tizimga kirish uchun ma'lumotlaringizni kiriting.
-            </p>
-          </div>
+        <div className="w-full max-w-[340px] mx-auto px-8">
+          {/* Title */}
+          <h1 className="text-[22px] font-bold text-gray-900 text-center" style={{ marginBottom: 25 }}>
+            Kirish
+          </h1>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Phone */}
             <div>
-              <label className="block text-[13px] font-bold text-gray-800 mb-1.5">
-                Telefon raqami
+              <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                Telefon raqamingiz <span className="text-red-500">*</span>
               </label>
               <div className="relative flex items-center">
                 <input
                   type="text"
                   placeholder="+998"
-                  className="w-full h-[45px] px-4 pr-10 text-[14px] border border-[#e2e8f0] rounded-[8px] focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all bg-white placeholder-[#94a3b8] text-gray-800"
+                  className="w-full h-[42px] px-4 pr-10 text-[14px] border border-[#e2e8f0] rounded-[6px] focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all bg-white placeholder-[#94a3b8] text-gray-800"
                   value={phone}
                   onChange={handlePhoneChange}
                   onKeyDown={handlePhoneKeyDown}
@@ -179,14 +174,22 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <label className="block text-[13px] font-bold text-gray-800 mb-1.5">
-                Parol
-              </label>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-[13px] font-medium text-gray-700">
+                  Parol
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-[12px] text-[#3b82f6] font-semibold hover:underline"
+                >
+                  Parolni unutdingizmi?
+                </Link>
+              </div>
               <div className="relative flex items-center">
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="w-full h-[45px] px-4 pr-10 text-[14px] border border-[#e2e8f0] rounded-[8px] focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all bg-white placeholder-[#94a3b8] text-gray-800"
+                  className="w-full h-[42px] px-4 pr-10 text-[14px] border border-[#e2e8f0] rounded-[6px] focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all bg-white placeholder-[#94a3b8] text-gray-800"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -204,6 +207,7 @@ export default function Login() {
               </div>
             </div>
 
+            {/* Payment Warning */}
             {paymentWarning && (
               <div 
                 className="bg-[#fff1f2] border border-[#fecaca] rounded-[8px] p-4 text-[13px] text-[#990011] leading-relaxed text-left"
@@ -226,41 +230,29 @@ export default function Login() {
               type="submit"
               disabled={loading}
               style={{
-                height: "46px",
-                borderRadius: "10px",
-                backgroundColor: "#990011", // Gilos rang
-                boxShadow: "0 4px 12px rgba(153, 0, 17, 0.2)"
+                height: "48px",
+                borderRadius: "50px",
+                backgroundColor: "rgba(59,129,244,1)",
               }}
-              className="w-full hover:opacity-95 active:scale-[0.98] transition-all text-white font-bold text-[14px] flex items-center justify-center gap-2.5 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer mt-1"
+              className="w-full hover:opacity-90 active:scale-[0.98] transition-all text-white font-semibold text-[14px] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
                 <CircularProgress size={18} color="inherit" />
               ) : (
-                <>
-                  {/* Login Sign Icon */}
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h3a3 3 0 013 3v1" />
-                  </svg>
-                  Kirish
-                </>
+                "Kirish"
               )}
             </button>
 
-            {/* Bottom Links */}
-            <div className="flex flex-col items-center gap-3 mt-2">
+            {/* Bottom link */}
+            <p className="text-center text-[12px] text-gray-500">
+              Menda hisob mavjud emas!{" "}
               <Link
-                href="/forgot-password"
-                className="text-[13px] text-[#990011] font-bold hover:underline"
+                href="/register"
+                className="text-[#3b82f6] font-semibold hover:underline"
               >
-                Parolni unutdingizmi?
+                Ro'yxatdan o'tish
               </Link>
-              <p className="text-[12px] text-gray-500">
-                Menda hisob mavjud emas!{" "}
-                <Link href="/register" className="text-[#3b82f6] font-semibold hover:underline">
-                  Ro'yxatdan o'tish
-                </Link>
-              </p>
-            </div>
+            </p>
           </form>
         </div>
       </div>
