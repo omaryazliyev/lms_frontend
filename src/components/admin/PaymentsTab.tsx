@@ -17,6 +17,7 @@ import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
 interface Course {
   id: number;
   name: string;
+  prise: number;
 }
 
 interface Student {
@@ -28,7 +29,7 @@ interface Student {
   isPaid: boolean;
   create_at: string;
   courseId?: number | null;
-  course?: { id: number; name: string } | null;
+  course?: { id: number; name: string; prise: number | string } | null;
 }
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -273,17 +274,27 @@ export default function PaymentsTab() {
                     </td>
 
                     {/* Course display */}
-                    <td style={{ padding: "12px 16px", minWidth: 150 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6.5 }}>
-                        <SchoolOutlined style={{ width: 16, height: 16, color: student.course?.name ? "#3b82f6" : "#94a3b8", flexShrink: 0 }} />
-                        <span style={{
-                          fontSize: 13,
-                          fontWeight: student.course?.name ? 600 : 400,
-                          color: student.course?.name ? "#1e293b" : "#94a3b8"
-                        }}>
-                          {student.course?.name || "—"}
-                        </span>
-                      </div>
+                    <td style={{ padding: "12px 16px", minWidth: 170 }}>
+                      {student.course ? (
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <SchoolOutlined style={{ width: 16, height: 16, color: "#3b82f6", flexShrink: 0 }} />
+                            <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
+                              {student.course.name}
+                            </span>
+                          </div>
+                          {student.course.prise !== undefined && (
+                            <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 700, marginLeft: 22, marginTop: 2 }}>
+                              {Number(student.course.prise).toLocaleString("uz-UZ")} UZS
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#94a3b8" }}>
+                          <SchoolOutlined style={{ width: 16, height: 16, flexShrink: 0 }} />
+                          <span style={{ fontSize: 13 }}>—</span>
+                        </div>
+                      )}
                     </td>
 
                     {/* Status badge */}
