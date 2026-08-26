@@ -85,17 +85,26 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [usersRes, coursesRes] = await Promise.all([
-          api.get("/users/admin/all").catch(() => api.get("/users")),
-          api.get("/courses/admin/all").catch(() => api.get("/courses")),
+        const [adminsRes, mentorsRes, assistantsRes, studentsRes, coursesRes] = await Promise.all([
+          api.get("/users/admin").catch(() => ({ data: [] })),
+          api.get("/mentor").catch(() => ({ data: [] })),
+          api.get("/assistant").catch(() => ({ data: [] })),
+          api.get("/student").catch(() => ({ data: [] })),
+          api.get("/courses/admin/all").catch(() => api.get("/courses")).catch(() => ({ data: [] }))
         ]);
-        const users: any[] = usersRes.data?.data || usersRes.data || [];
-        const courses: any[] = coursesRes.data?.data || coursesRes.data || [];
+
+        const admins = Array.isArray(adminsRes.data) ? adminsRes.data : [];
+        const mentors = Array.isArray(mentorsRes.data) ? mentorsRes.data : [];
+        const assistants = Array.isArray(assistantsRes.data) ? assistantsRes.data : [];
+        const students = Array.isArray(studentsRes.data) ? studentsRes.data : [];
+        const coursesRaw = coursesRes.data;
+        const courses = Array.isArray(coursesRaw) ? coursesRaw : coursesRaw?.data || [];
+
         setStats({
-          admins:     users.filter((u: any) => u.role === "ADMIN" || u.role === "SUPERADMIN").length,
-          mentors:    users.filter((u: any) => u.role === "TEACHER").length,
-          assistants: users.filter((u: any) => u.role === "ASSISTANT").length,
-          students:   users.filter((u: any) => u.role === "STUDENT").length,
+          admins:     admins.length,
+          mentors:    mentors.length,
+          assistants: assistants.length,
+          students:   students.length,
           courses:    courses.length,
         });
       } catch (e) {
