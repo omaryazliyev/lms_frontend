@@ -198,7 +198,11 @@ export default function CoursesPage() {
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-            {filtered.map(course => <CourseCard key={course.id} course={course} />)}
+            {filtered.map(course => (
+              <Link key={course.id} href={`/courses/${course.id}`} style={{ textDecoration: "none" }}>
+                <CourseCard course={course} />
+              </Link>
+            ))}
           </div>
         )}
       </div>

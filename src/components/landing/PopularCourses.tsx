@@ -100,19 +100,20 @@ export default function PopularCourses() {
               : "";
 
             return (
-              <CourseCard
-                key={course.id}
-                bannerImg={bannerUrl}
-                bannerBg="#1e3a5f"
-                badgeText={categoryName}
-                badgeColor={badgeColors[categoryName] || "#64748b"}
-                mentorName={course.mentorProfile?.users?.full_name || "Mentor"}
-                mentorImg=""
-                title={course.name}
-                description={course.description}
-                rating={4.5}
-                price={Number(course.prise).toLocaleString("uz-UZ")}
-              />
+              <Link key={course.id} href={`/courses/${course.id}`} style={{ textDecoration: "none" }}>
+                <CourseCard
+                  bannerImg={bannerUrl}
+                  bannerBg="#1e3a5f"
+                  badgeText={categoryName}
+                  badgeColor={badgeColors[categoryName] || "#64748b"}
+                  mentorName={course.mentorProfile?.users?.full_name || "Mentor"}
+                  mentorImg=""
+                  title={course.name}
+                  description={course.description}
+                  rating={4.5}
+                  price={Number(course.prise).toLocaleString("uz-UZ")}
+                />
+              </Link>
             );
           })}
         </div>
