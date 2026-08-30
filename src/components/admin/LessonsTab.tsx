@@ -15,14 +15,19 @@ import PlayCircleFilledWhiteOutlined from "@mui/icons-material/PlayCircleFilledW
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import LessonDetails from "./LessonDetails";
 
+type LessonSection = { id: number; name: string; course: { id: number; name: string } };
+
 type Lesson = {
   id: number;
   name: string;
   description: string;
   file: string | null;
   create_at: string;
-  sections: { id: number; name: string; course: { id: number; name: string } };
+  section?: LessonSection;
+  sections?: LessonSection;
 };
+
+const lessonSection = (l: Lesson) => l.section || l.sections;
 
 type Section = { id: number; name: string; course: { name: string } };
 
@@ -67,8 +72,9 @@ export default function LessonsTab({ course, section, onBack }: Props) {
         api.get("/lessons"),
         api.get("/sections")
       ]);
-      setLessons(lesRes.data);
-      setSections(secRes.data);
+      const list = Array.isArray(lesRes.data) ? lesRes.data : [];
+      setLessons(list.map((l: Lesson) => ({ ...l, sections: l.section || l.sections })));
+      setSections(Array.isArray(secRes.data) ? secRes.data : []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -80,26 +86,30 @@ export default function LessonsTab({ course, section, onBack }: Props) {
 
   const filtered = lessons
     .filter(l => l.name.toLowerCase().includes(search.toLowerCase()))
-    .filter(l => section ? l.sections?.id === section.id : true);
+    .filter(l => (section ? lessonSection(l)?.id === section.id : true));
 
   const handleAdd = async () => {
     if (!form.name || !form.sectionId || !videoFile) {
-      alert("Iltimos barcha maydonlarni to'ldiring va fayl yuklang");
+      alert("Iltimos dars nomi, bo'lim va video faylni kiriting");
       return;
     }
     try {
       const formData = new FormData();
       formData.append("name", form.name);
-      formData.append("description", form.description);
-      formData.append("sectionId", form.sectionId);
-      if (videoFile) formData.append("file", videoFile);
+      formData.append("description", form.description.trim() || "Ta'rif yo'q");
+      formData.append("sectionId", String(Number(form.sectionId)));
+      formData.append("file", videoFile);
 
-      await api.post("/lessons", formData, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.post("/lessons", formData);
       await fetchData();
       setAddOpen(false);
-      setForm({ name: "", description: "", sectionId: "" });
+      setForm({ name: "", description: "", sectionId: section ? section.id.toString() : "" });
       setVideoFile(null);
-    } catch (e) { console.error(e); }
+    } catch (e: any) {
+      console.error(e);
+      const msg = e?.response?.data?.message;
+      alert(Array.isArray(msg) ? msg.join("\n") : (msg || "Dars qo'shishda xatolik yuz berdi"));
+    }
   };
 
   const handleEdit = async () => {
@@ -111,11 +121,15 @@ export default function LessonsTab({ course, section, onBack }: Props) {
       formData.append("sectionId", editForm.sectionId);
       if (videoFile) formData.append("file", videoFile);
 
-      await api.patch(`/lessons/${editRow.id}`, formData, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.patch(`/lessons/${editRow.id}`, formData);
       await fetchData();
       setEditOpen(false);
       setVideoFile(null);
-    } catch (e) { console.error(e); }
+    } catch (e: any) {
+      console.error(e);
+      const msg = e?.response?.data?.message;
+      alert(Array.isArray(msg) ? msg.join("\n") : (msg || "Darsni tahrirlashda xatolik yuz berdi"));
+    }
   };
 
   const handleDelete = async () => {
@@ -209,7 +223,7 @@ export default function LessonsTab({ course, section, onBack }: Props) {
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   <td style={{ padding: "18px 24px", fontSize: 13, color: "#475569" }}>
-                    {row.sections?.course?.name || "-"}
+                    {lessonSection(row)?.course?.name || "-"}
                   </td>
                   <td style={{ padding: "18px 24px", fontSize: 14, fontWeight: 500, color: "#0f172a" }}>{row.name}</td>
                   <td style={{ padding: "18px 24px", fontSize: 13, color: "#475569" }}>{row.description}</td>
@@ -222,7 +236,7 @@ export default function LessonsTab({ course, section, onBack }: Props) {
                   </td>
                   <td style={{ padding: "18px 24px", textAlign: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                      <button onClick={() => { setEditRow(row); setEditForm({ name: row.name, description: row.description, sectionId: row.sections?.id?.toString() }); setEditOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><EditOutlined style={{ width: 16, height: 16 }} /></button>
+                      <button onClick={() => { setEditRow(row); setEditForm({ name: row.name, description: row.description, sectionId: lessonSection(row)?.id?.toString() || "" }); setEditOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><EditOutlined style={{ width: 16, height: 16 }} /></button>
                       <button onClick={() => { setDeleteTargetId(row.id); setDeleteOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><DeleteOutlineOutlined style={{ width: 16, height: 16 }} /></button>
                     </div>
                   </td>

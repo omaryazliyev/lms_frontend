@@ -15,6 +15,17 @@ api.interceptors.request.use((config) => {
             config.headers.Authorization = `Bearer ${token}`;
         }
     }
+    // FormData uchun boundary ni brauzer/axios o'zi qo'yishi kerak
+    if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+        const headers = config.headers as any;
+        if (headers?.delete) {
+            headers.delete("Content-Type");
+            headers.delete("content-type");
+        } else if (headers) {
+            delete headers["Content-Type"];
+            delete headers["content-type"];
+        }
+    }
     return config;
 });
 
