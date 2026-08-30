@@ -86,12 +86,17 @@ export default function MentorPage() {
 
   const initials = (n: string) => n?.split(" ").map((x: string) => x[0]).join("").slice(0, 2).toUpperCase() || "M";
   const logout = () => { localStorage.removeItem("access_token"); localStorage.removeItem("refresh_token"); window.location.href = "/login"; };
-  const filteredStudents = students.filter(s => {
+
+  const mentorCourses = courses.filter(c => c.mentorProfile?.user?.id === user?.id);
+  const mentorCourseNames = new Set(mentorCourses.map(c => c.name));
+  const mentorStudents = students.filter(s => s.course && mentorCourseNames.has(s.course.name));
+
+  const filteredStudents = mentorStudents.filter(s => {
     const matchCourse = !selectedCourseFilter || s.course?.name === selectedCourseFilter;
     const matchSearch = !studentSearch || s.full_name.toLowerCase().includes(studentSearch.toLowerCase()) || s.phone.includes(studentSearch);
     return matchCourse && matchSearch;
   });
-  const filteredQAStudents = students.filter(s => (!selectedQACourse || s.course?.name === selectedQACourse) && (!qaSearch || s.full_name.toLowerCase().includes(qaSearch.toLowerCase())));
+  const filteredQAStudents = mentorStudents.filter(s => (!selectedQACourse || s.course?.name === selectedQACourse) && (!qaSearch || s.full_name.toLowerCase().includes(qaSearch.toLowerCase())));
   const sendMessage = () => {
     if (!qaInput.trim() || !selectedQAStudent) return;
     setQaMessages(prev => [...prev, { id: Date.now(), text: qaInput, sender: "mentor", senderName: user?.full_name || "Mentor", time: new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" }) }]);
@@ -191,9 +196,9 @@ export default function MentorPage() {
               <p style={{ fontSize: 13, color: "#64748b", margin: "0 0 24px" }}>Bu yerda o`zingizga tegishli kurslar va o`quvchilarni boshqarishingiz mumkin.</p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
                 {[
-                  { label: "Jami Kurslar", value: courses.length, icon: <MenuBookOutlined style={{ width: 22, height: 22, color: "#3b82f6" }} />, bg: "#eff6ff", border: "#bfdbfe" },
-                  { label: "Nashr qilingan", value: courses.filter((c: Course) => c.isActive).length, icon: <CheckCircleOutlined style={{ width: 22, height: 22, color: "#10b981" }} />, bg: "#f0fdf4", border: "#bbf7d0" },
-                  { label: "Sotib olganlar", value: students.length, icon: <SchoolOutlined style={{ width: 22, height: 22, color: ACCENT }} />, bg: "#fff1f2", border: "#fecdd3" },
+                  { label: "Jami Kurslar", value: mentorCourses.length, icon: <MenuBookOutlined style={{ width: 22, height: 22, color: "#3b82f6" }} />, bg: "#eff6ff", border: "#bfdbfe" },
+                  { label: "Nashr qilingan", value: mentorCourses.filter((c: Course) => c.isActive).length, icon: <CheckCircleOutlined style={{ width: 22, height: 22, color: "#10b981" }} />, bg: "#f0fdf4", border: "#bbf7d0" },
+                  { label: "Sotib olganlar", value: mentorStudents.length, icon: <SchoolOutlined style={{ width: 22, height: 22, color: ACCENT }} />, bg: "#fff1f2", border: "#fecdd3" },
                   { label: "Jami baholar", value: 0, icon: <StarOutlined style={{ width: 22, height: 22, color: "#f59e0b" }} />, bg: "#fffbeb", border: "#fde68a" },
                 ].map((s, i) => (
                   <div key={i} style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "20px", display: "flex", alignItems: "center", gap: 14 }}>
@@ -211,8 +216,8 @@ export default function MentorPage() {
                   <thead><tr style={{ background: "#f8fafc" }}>{["KURS","KATEGORIYA","NARXI","DARAJASI","HOLATI","SOTIB OLGAN","BAHO"].map(h => <th key={h} style={{ padding: "10px 16px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textAlign: "left", letterSpacing: "0.05em" }}>{h}</th>)}</tr></thead>
                   <tbody>
                     {loadingCourses ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 32 }}><CircularProgress size={28} style={{ color: ACCENT }} /></td></tr>
-                    : courses.length === 0 ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>Kurslar mavjud emas</td></tr>
-                    : courses.map((c: Course) => (
+                    : mentorCourses.length === 0 ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>Kurslar mavjud emas</td></tr>
+                    : mentorCourses.map((c: Course) => (
                       <tr key={c.id} style={{ borderTop: "1px solid #f1f5f9" }}>
                         <td style={{ padding: "12px 16px" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -224,7 +229,7 @@ export default function MentorPage() {
                         <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{Number(c.prise).toLocaleString("uz-UZ")} so`m</td>
                         <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, fontWeight: 600, color: "#ef4444", background: "#fff1f2", padding: "3px 10px", borderRadius: 20 }}>{c.level}</span></td>
                         <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, fontWeight: 600, color: c.isActive ? "#16a34a" : "#64748b", background: c.isActive ? "#f0fdf4" : "#f8fafc", padding: "3px 10px", borderRadius: 20, border: `1px solid ${c.isActive ? "#bbf7d0" : "#e2e8f0"}` }}>{c.isActive ? "Nashr qilingan" : "Nofaol"}</span></td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600 }}>{students.filter((s: Student) => s.course?.name === c.name).length}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600 }}>{mentorStudents.filter((s: Student) => s.course?.name === c.name).length}</td>
                         <td style={{ padding: "12px 16px", fontSize: 13 }}><span style={{ color: "#f59e0b" }}>★</span> 0</td>
                       </tr>
                     ))}
@@ -241,7 +246,7 @@ export default function MentorPage() {
               <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
                 <select value={selectedCourseFilter} onChange={e => setSelectedCourseFilter(e.target.value)} style={{ height: 38, padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, background: "#fff", outline: "none", minWidth: 180 }}>
                   <option value="">Barcha kurslar</option>
-                  {courses.map((c: Course) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  {mentorCourses.map((c: Course) => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, padding: "0 12px", height: 38, maxWidth: 320 }}>
@@ -284,8 +289,8 @@ export default function MentorPage() {
                   <thead><tr style={{ background: "#f8fafc" }}>{["BANNER","KURS NOMI","DARAJASI","NARXI","KATEGORIYA","HOLATI","AMALLAR"].map(h => <th key={h} style={{ padding: "10px 16px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textAlign: "left", letterSpacing: "0.05em" }}>{h}</th>)}</tr></thead>
                   <tbody>
                     {loadingCourses ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 32 }}><CircularProgress size={28} style={{ color: ACCENT }} /></td></tr>
-                    : courses.length === 0 ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>Kurslar mavjud emas</td></tr>
-                    : courses.map((c: Course) => (
+                    : mentorCourses.length === 0 ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>Kurslar mavjud emas</td></tr>
+                    : mentorCourses.map((c: Course) => (
                       <tr key={c.id} style={{ borderTop: "1px solid #f1f5f9" }}>
                         <td style={{ padding: "12px 16px" }}><div style={{ width: 44, height: 44, borderRadius: 8, background: "#f1f5f9", overflow: "hidden" }}>{c.banner ? <img src={`/api/v1/uploads/images/${c.banner}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📚</div>}</div></td>
                         <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 13, fontWeight: 700, color: "#3b82f6", cursor: "pointer" }}>{c.name}</span></td>
@@ -298,7 +303,7 @@ export default function MentorPage() {
                     ))}
                   </tbody>
                 </table>
-                <div style={{ padding: "12px 16px", borderTop: "1px solid #f1f5f9", fontSize: 12, color: "#94a3b8" }}>Jami {courses.length} ta kurs</div>
+                <div style={{ padding: "12px 16px", borderTop: "1px solid #f1f5f9", fontSize: 12, color: "#94a3b8" }}>Jami {mentorCourses.length} ta kurs</div>
               </div>
             </div>
           )}
@@ -309,13 +314,13 @@ export default function MentorPage() {
                 <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: 0 }}>Savol-javoblar</h1>
                 <span style={{ fontSize: 12, color: "#64748b", display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />online</span>
               </div>
-              <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 14px" }}>{courses[0]?.name || ""}</p>
+              <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 14px" }}>{mentorCourses[0]?.name || ""}</p>
               <div style={{ flex: 1, display: "flex", background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
                 <div style={{ width: 280, borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column", flexShrink: 0 }}>
                   <div style={{ padding: 10 }}>
                     <select value={selectedQACourse} onChange={e => { setSelectedQACourse(e.target.value); setSelectedQAStudent(null); }} style={{ width: "100%", height: 34, padding: "0 10px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, background: "#fff", outline: "none", marginBottom: 8 }}>
                       <option value="">Barcha kurslar</option>
-                      {courses.map((c: Course) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                      {mentorCourses.map((c: Course) => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 7, padding: "0 10px", height: 32 }}>
                       <SearchOutlined style={{ width: 13, height: 13, color: "#94a3b8" }} />
