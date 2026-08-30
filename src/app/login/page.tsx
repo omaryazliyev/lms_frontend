@@ -94,6 +94,8 @@ export default function Login() {
       setLoading(false);
       if (payload.role === "SUPERADMIN" || payload.role === "ADMIN") {
         window.location.href = "/admin";
+      } else if (payload.role === "TEACHER") {
+        window.location.href = "/mentor";
       } else {
         window.location.href = "/student";
       }
