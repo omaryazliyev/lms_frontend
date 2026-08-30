@@ -18,8 +18,12 @@ type Homework = {
   description: string;
   file: string | null;
   create_at: string;
-  lessons: { id: number; name: string; sections?: { name: string; courses?: { name: string } } };
+  lessonId?: number;
+  lesson?: { id: number; name: string; section?: { name: string; course?: { name: string } } };
+  lessons?: { id: number; name: string; sections?: { name: string; courses?: { name: string } } };
 };
+
+const hwLesson = (row: Homework) => row.lesson || row.lessons;
 
 type Lesson = { id: number; name: string };
 
@@ -52,8 +56,9 @@ export default function HomeworksTab({ initialLessonId }: HomeworksTabProps) {
         api.get("/homeworks"),
         api.get("/lessons"),
       ]);
-      setHomeworks(hwRes.data);
-      setLessons(lesRes.data);
+      const hwList = Array.isArray(hwRes.data) ? hwRes.data : [];
+      setHomeworks(hwList.map((h: Homework) => ({ ...h, lessons: h.lesson || h.lessons })));
+      setLessons(Array.isArray(lesRes.data) ? lesRes.data : []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -72,32 +77,43 @@ export default function HomeworksTab({ initialLessonId }: HomeworksTabProps) {
   }, [initialLessonId]);
 
   const handleAdd = async () => {
-    if (!form.description || !form.lessonId) return;
+    if (!form.description.trim() || !form.lessonId) {
+      alert("Iltimos, dars va vazifa matnini kiriting");
+      return;
+    }
     try {
       const fd = new FormData();
       fd.append("lessonId", form.lessonId);
-      fd.append("description", form.description);
+      fd.append("description", form.description.trim());
       if (hwFile) fd.append("file", hwFile);
-      await api.post("/homeworks", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.post("/homeworks", fd);
       await fetchData();
       setAddOpen(false);
       setForm({ description: "", lessonId: "" });
       setHwFile(null);
-    } catch (e) { console.error(e); }
+    } catch (e: any) {
+      console.error(e);
+      const msg = e?.response?.data?.message;
+      alert(Array.isArray(msg) ? msg.join("\n") : (msg || "Vazifa qo'shishda xatolik yuz berdi"));
+    }
   };
 
   const handleEdit = async () => {
-    if (!editRow || !editForm.description) return;
+    if (!editRow || !editForm.description.trim()) return;
     try {
       const fd = new FormData();
-      fd.append("description", editForm.description);
+      fd.append("description", editForm.description.trim());
       if (editForm.lessonId) fd.append("lessonId", editForm.lessonId);
       if (hwFile) fd.append("file", hwFile);
-      await api.patch(`/homeworks/${editRow.id}`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.patch(`/homeworks/${editRow.id}`, fd);
       await fetchData();
       setEditOpen(false);
       setHwFile(null);
-    } catch (e) { console.error(e); }
+    } catch (e: any) {
+      console.error(e);
+      const msg = e?.response?.data?.message;
+      alert(Array.isArray(msg) ? msg.join("\n") : (msg || "Vazifani tahrirlashda xatolik yuz berdi"));
+    }
   };
 
   const handleDelete = async () => {
@@ -172,7 +188,7 @@ export default function HomeworksTab({ initialLessonId }: HomeworksTabProps) {
               ) : (
                 paginated.map(row => (
                   <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "16px 20px", fontSize: 13, fontWeight: 500, color: "#475569" }}>{row.lessons?.name}</td>
+                    <td style={{ padding: "16px 20px", fontSize: 13, fontWeight: 500, color: "#475569" }}>{hwLesson(row)?.name || "-"}</td>
                     <td style={{ padding: "16px 20px", fontSize: 13, color: "#475569", lineHeight: 1.5 }}>{row.description}</td>
                     <td style={{ padding: "16px 20px" }}>
                       {row.file ? (
@@ -185,7 +201,7 @@ export default function HomeworksTab({ initialLessonId }: HomeworksTabProps) {
                     </td>
                     <td style={{ padding: "16px 20px", textAlign: "right" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-                        <button onClick={() => { setEditRow(row); setEditForm({ description: row.description, lessonId: row.lessons?.id?.toString() }); setHwFile(null); setEditOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><EditOutlined style={{ width: 16, height: 16 }} /></button>
+                        <button onClick={() => { setEditRow(row); setEditForm({ description: row.description, lessonId: String(hwLesson(row)?.id || row.lessonId || "") }); setHwFile(null); setEditOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><EditOutlined style={{ width: 16, height: 16 }} /></button>
                         <button onClick={() => { setDeleteTargetId(row.id); setDeleteOpen(true); }} style={{ width: 32, height: 32, border: "none", background: "#f8fafc", borderRadius: 8, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><DeleteOutlineOutlined style={{ width: 16, height: 16 }} /></button>
                       </div>
                     </td>

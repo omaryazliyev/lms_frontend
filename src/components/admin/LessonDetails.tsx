@@ -16,15 +16,29 @@ import AssignmentOutlined from "@mui/icons-material/AssignmentOutlined";
 type Material = {
   id: number;
   description: string;
+  lessonId?: number;
   files: { id: number; file: string }[];
-  lessons: { id: number; name: string };
+  lesson?: { id: number; name: string };
+  lessons?: { id: number; name: string };
 };
 
 type Homework = {
   id: number;
   description: string;
   file: string | null;
-  lessons: { id: number; name: string };
+  lessonId?: number;
+  lesson?: { id: number; name: string };
+  lessons?: { id: number; name: string };
+};
+
+const asList = (data: any) => (Array.isArray(data) ? data : []);
+const relatedLesson = (row: { lesson?: { id: number; name: string }; lessons?: { id: number; name: string } }) =>
+  row.lesson || row.lessons;
+const belongsToLesson = (row: { lessonId?: number; lesson?: { id: number }; lessons?: { id: number } }, lessonId: number) =>
+  Number(row.lessonId ?? relatedLesson(row as any)?.id) === Number(lessonId);
+const showApiError = (e: any, fallback: string) => {
+  const msg = e?.response?.data?.message;
+  alert(Array.isArray(msg) ? msg.join("\n") : (msg || fallback));
 };
 
 const inputStyle: React.CSSProperties = {
@@ -59,38 +73,47 @@ function MaterialsSection({ lesson }: { lesson: any }) {
     try {
       setLoading(true);
       const res = await api.get("/materials");
-      setMaterials(res.data.filter((m: any) => m.lessons?.id === lesson.id));
+      setMaterials(asList(res.data).filter((m: any) => belongsToLesson(m, lesson.id)));
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchMaterials(); }, [lesson.id]);
 
   const handleAdd = async () => {
-    if (!form.description) return;
+    if (!form.description.trim()) {
+      alert("Iltimos, material uchun izoh kiriting");
+      return;
+    }
     try {
       const fd = new FormData();
-      fd.append("lessonId", lesson.id.toString());
-      fd.append("description", form.description);
+      fd.append("lessonId", String(lesson.id));
+      fd.append("description", form.description.trim());
       materialFiles.forEach(f => fd.append("files", f));
-      await api.post("/materials", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.post("/materials", fd);
       await fetchMaterials();
       setAddOpen(false);
       setForm({ description: "" });
       setMaterialFiles([]);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      showApiError(e, "Material qo'shishda xatolik yuz berdi");
+    }
   };
 
   const handleEdit = async () => {
-    if (!editRow || !editForm.description) return;
+    if (!editRow || !editForm.description.trim()) return;
     try {
       const fd = new FormData();
-      fd.append("description", editForm.description);
+      fd.append("description", editForm.description.trim());
       materialFiles.forEach(f => fd.append("files", f));
-      await api.patch(`/materials/${editRow.id}`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.patch(`/materials/${editRow.id}`, fd);
       await fetchMaterials();
       setEditOpen(false);
       setMaterialFiles([]);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      showApiError(e, "Materialni tahrirlashda xatolik yuz berdi");
+    }
   };
 
   const handleDelete = async () => {
@@ -132,7 +155,7 @@ function MaterialsSection({ lesson }: { lesson: any }) {
               <tr><td colSpan={4} style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>Material topilmadi.</td></tr>
             ) : materials.map(row => (
               <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                <td style={{ padding: "16px 20px", fontSize: 13, fontWeight: 500, color: "#475569" }}>{row.lessons?.name}</td>
+                <td style={{ padding: "16px 20px", fontSize: 13, fontWeight: 500, color: "#475569" }}>{relatedLesson(row)?.name || lesson.name || "-"}</td>
                 <td style={{ padding: "16px 20px", fontSize: 13, color: "#475569", lineHeight: 1.5 }}>{row.description}</td>
                 <td style={{ padding: "16px 20px" }}>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -272,38 +295,47 @@ function HomeworksSection({ lesson }: { lesson: any }) {
     try {
       setLoading(true);
       const res = await api.get("/homeworks");
-      setHomeworks(res.data.filter((h: any) => h.lessons?.id === lesson.id));
+      setHomeworks(asList(res.data).filter((h: any) => belongsToLesson(h, lesson.id)));
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchHomeworks(); }, [lesson.id]);
 
   const handleAdd = async () => {
-    if (!form.description) return;
+    if (!form.description.trim()) {
+      alert("Iltimos, vazifa matnini kiriting");
+      return;
+    }
     try {
       const fd = new FormData();
-      fd.append("lessonId", lesson.id.toString());
-      fd.append("description", form.description);
+      fd.append("lessonId", String(lesson.id));
+      fd.append("description", form.description.trim());
       if (hwFile) fd.append("file", hwFile);
-      await api.post("/homeworks", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.post("/homeworks", fd);
       await fetchHomeworks();
       setAddOpen(false);
       setForm({ description: "" });
       setHwFile(null);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      showApiError(e, "Vazifa qo'shishda xatolik yuz berdi");
+    }
   };
 
   const handleEdit = async () => {
-    if (!editRow || !editForm.description) return;
+    if (!editRow || !editForm.description.trim()) return;
     try {
       const fd = new FormData();
-      fd.append("description", editForm.description);
+      fd.append("description", editForm.description.trim());
       if (hwFile) fd.append("file", hwFile);
-      await api.patch(`/homeworks/${editRow.id}`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.patch(`/homeworks/${editRow.id}`, fd);
       await fetchHomeworks();
       setEditOpen(false);
       setHwFile(null);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      showApiError(e, "Vazifani tahrirlashda xatolik yuz berdi");
+    }
   };
 
   const handleDelete = async () => {
@@ -356,7 +388,7 @@ function HomeworksSection({ lesson }: { lesson: any }) {
               </tr>
             ) : homeworks.map(row => (
               <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                <td style={{ padding: "16px 20px", fontSize: 13, fontWeight: 500, color: "#475569" }}>{row.lessons?.name}</td>
+                <td style={{ padding: "16px 20px", fontSize: 13, fontWeight: 500, color: "#475569" }}>{relatedLesson(row)?.name || lesson.name || "-"}</td>
                 <td style={{ padding: "16px 20px", fontSize: 13, color: "#475569", lineHeight: 1.5 }}>{row.description}</td>
                 <td style={{ padding: "16px 20px" }}>
                   {row.file ? getFileIcon(row.file) : <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>}
@@ -527,20 +559,26 @@ function ExamsSection({ lesson }: { lesson: any }) {
     try {
       setLoading(true);
       const res = await api.get("/exams");
-      setExams(res.data.filter((e: Exam) => e.lessonId === lesson.id));
+      setExams(asList(res.data).filter((e: Exam) => Number(e.lessonId) === Number(lesson.id)));
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchExams(); }, [lesson.id]);
 
   const handleAdd = async () => {
-    if (!form.question || !form.variantA || !form.variantB || !form.variantC || !form.variantD) return;
+    if (!form.question.trim() || !form.variantA.trim() || !form.variantB.trim() || !form.variantC.trim() || !form.variantD.trim()) {
+      alert("Iltimos, savol va barcha variantlarni to'ldiring");
+      return;
+    }
     try {
-      await api.post("/exams", { lessonId: lesson.id, ...form });
+      await api.post("/exams", { ...form, lessonId: Number(lesson.id) });
       await fetchExams();
       setAddOpen(false);
       setForm(emptyForm);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      showApiError(e, "Savol qo'shishda xatolik yuz berdi");
+    }
   };
 
   const handleEdit = async () => {
@@ -549,7 +587,10 @@ function ExamsSection({ lesson }: { lesson: any }) {
       await api.patch(`/exams/${editRow.id}`, editForm);
       await fetchExams();
       setEditOpen(false);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      showApiError(e, "Savolni tahrirlashda xatolik yuz berdi");
+    }
   };
 
   const handleDelete = async () => {
@@ -710,6 +751,21 @@ function ExamsSection({ lesson }: { lesson: any }) {
 /* ======================== MAIN COMPONENT ======================== */
 export default function LessonDetails({ lesson, onBack }: { lesson: any; onBack: () => void }) {
   const [activeTab, setActiveTab] = useState("Materiallar");
+  const [fullLesson, setFullLesson] = useState<any>(lesson);
+
+  useEffect(() => {
+    setFullLesson(lesson);
+    if (!lesson?.id) return;
+    api.get(`/lessons/${lesson.id}`)
+      .then((res) => setFullLesson({ ...lesson, ...res.data }))
+      .catch(() => {});
+  }, [lesson?.id]);
+
+  const courseName =
+    fullLesson?.section?.course?.name ||
+    fullLesson?.sections?.course?.name ||
+    fullLesson?.sections?.courses?.name ||
+    "Noma'lum";
 
   return (
     <div>
@@ -718,13 +774,13 @@ export default function LessonDetails({ lesson, onBack }: { lesson: any; onBack:
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 13, color: "#94a3b8" }}>
           <span style={{ cursor: "pointer" }} onClick={onBack}>Kurslar</span>
           <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-          <span>{lesson.sections?.courses?.name || "Noma'lum"}</span>
+          <span>{courseName}</span>
           <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
           <span>Bo'limlar</span>
           <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
           <span style={{ cursor: "pointer" }} onClick={onBack}>Darslar</span>
           <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-          <span style={{ color: "#475569", fontWeight: 500 }}>{lesson.name}</span>
+          <span style={{ color: "#475569", fontWeight: 500 }}>{fullLesson?.name || lesson.name}</span>
         </div>
       </div>
 
@@ -746,9 +802,9 @@ export default function LessonDetails({ lesson, onBack }: { lesson: any; onBack:
         ))}
       </div>
 
-      {activeTab === "Materiallar" && <MaterialsSection lesson={lesson} />}
-      {activeTab === "Vazifalar" && <HomeworksSection lesson={lesson} />}
-      {activeTab === "Imtihonlar" && <ExamsSection lesson={lesson} />}
+      {activeTab === "Materiallar" && <MaterialsSection lesson={fullLesson} />}
+      {activeTab === "Vazifalar" && <HomeworksSection lesson={fullLesson} />}
+      {activeTab === "Imtihonlar" && <ExamsSection lesson={fullLesson} />}
     </div>
   );
 }
