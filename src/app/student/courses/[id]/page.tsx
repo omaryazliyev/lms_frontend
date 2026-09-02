@@ -151,23 +151,20 @@ export default function StudentCoursePlayer() {
     api.get(`/questions/lesson/${activeLesson.id}`)
       .then(res => {
         const raw = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
-        if (raw.length > 0) {
-          const list = raw.map((q: any) => ({
-            id: String(q.id),
-            text: q.text,
-            author: q.student?.full_name || "O'quvchi",
-            createdAt: new Date(q.create_at || Date.now()).toLocaleString("uz-UZ"),
-            answer: q.answer || undefined,
-            answerAuthor: q.answerer?.full_name || "Mentor",
-            answerTime: q.update_at ? new Date(q.update_at).toLocaleString("uz-UZ") : undefined,
-          }));
-          setQuestions(list);
-        } else {
-          setQuestions(loadQa(activeLesson.id));
-        }
+        const list = raw.map((q: any) => ({
+          id: String(q.id),
+          text: q.text,
+          author: q.student?.full_name || "O'quvchi",
+          createdAt: new Date(q.create_at || Date.now()).toLocaleString("uz-UZ"),
+          answer: q.answer || undefined,
+          answerAuthor: q.answerer?.full_name || "Mentor",
+          answerTime: q.update_at ? new Date(q.update_at).toLocaleString("uz-UZ") : undefined,
+        }));
+        setQuestions(list);
+        try { localStorage.removeItem(`lesson-qa-${activeLesson.id}`); } catch {}
       })
       .catch(() => {
-        setQuestions(loadQa(activeLesson.id));
+        setQuestions([]);
       });
 
     setRating(Number(localStorage.getItem(`lesson-rating-${activeLesson.id}`) || 0));
