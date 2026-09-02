@@ -551,7 +551,7 @@ export default function MentorPage() {
                           </div>
                         </td>
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{s.phone}</td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{s.course ? `${Number(s.course.prise).toLocaleString("uz-UZ")} so`m` : "—"}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{s.course ? `${Number(s.course.prise).toLocaleString("uz-UZ")} so'm` : "—"}</td>
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#64748b" }}>{s.create_at ? new Date(s.create_at).toLocaleDateString("uz-UZ") : "—"}</td>
                       </tr>
                     ))}
