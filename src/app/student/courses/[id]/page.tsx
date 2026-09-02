@@ -119,7 +119,16 @@ export default function StudentCoursePlayer() {
         setLoading(true);
         const myRes = await api.get("/student/my-course");
         const mine = Array.isArray(myRes.data?.data) ? myRes.data.data : Array.isArray(myRes.data) ? myRes.data : [];
-        if (!mine.some((c: any) => Number(c.id) === courseId)) {
+        
+        let hasAccess = mine.some((c: any) => Number(c.id) === Number(courseId));
+        if (!hasAccess) {
+          try {
+            const rawRequests = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
+            hasAccess = rawRequests.some((r: any) => r.status === "APPROVED" && Number(r.courseId) === Number(courseId));
+          } catch {}
+        }
+
+        if (!hasAccess) {
           if (!cancelled) setForbidden(true);
           return;
         }
