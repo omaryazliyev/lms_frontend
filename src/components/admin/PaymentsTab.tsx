@@ -99,13 +99,9 @@ export default function PaymentsTab() {
   const handleApproveNewCourse = async (req: any) => {
     setApprovingReqId(req.id);
     try {
-      // Kursni talabaga biriktir (assign)
-      if (req.courseId && req.studentId) {
-        await api.patch(`/student/${req.studentId}/assign-course`, { courseId: req.courseId }).catch(() => {});
-        await api.patch(`/student/${req.studentId}/toggle-paid`).catch(() => {});
-      }
-
-      // localStorage dan olib tashlash
+      // MUHIM: assign-course chaqirmaymiz — u eski courseId ni o'chirib yangi bilan almashtiradi.
+      // Yangi kurs so'rovi faqat ma'lumot sifatida saqlanadi, admin biladi.
+      // Faqat localStorage da APPROVED qilamiz.
       const raw = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
       const updated = raw.map((r: any) => r.id === req.id ? { ...r, status: "APPROVED" } : r);
       localStorage.setItem("lms_payment_requests", JSON.stringify(updated));
@@ -114,8 +110,6 @@ export default function PaymentsTab() {
       setNewCourseRequests(prev => prev.filter(r => r.id !== req.id));
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2500);
-      // Asosiy jadval yangilansin
-      fetchStudents();
     } catch {
       setAlert({ open: true, msg: "Tasdiqlashda xatolik yuz berdi", sev: "error" });
     } finally {
