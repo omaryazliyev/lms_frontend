@@ -433,28 +433,7 @@ export default function PaymentsTab() {
                       ) : (
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <SchoolOutlined style={{ width: 16, height: 16, color: "#94a3b8", flexShrink: 0 }} />
-                          <select
-                            defaultValue=""
-                            disabled={assigningId === student.id}
-                            onChange={e => {
-                              const val = e.target.value;
-                              if (val) handleAssignCourse(student.id, Number(val));
-                            }}
-                            style={{
-                              border: "1px solid #e2e8f0", borderRadius: 6,
-                              padding: "4px 8px", fontSize: 12, color: "#94a3b8",
-                              outline: "none", background: "#f8fafc",
-                              cursor: "pointer", maxWidth: 150,
-                            }}
-                          >
-                            <option value="" disabled>Kurs biriktir</option>
-                            {courses.map(c => (
-                              <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                          </select>
-                          {assigningId === student.id && (
-                            <CircularProgress size={12} style={{ color: BLUE }} />
-                          )}
+                          <span style={{ fontSize: 13, color: "#94a3b8" }}>—</span>
                         </div>
                       )}
                     </td>
