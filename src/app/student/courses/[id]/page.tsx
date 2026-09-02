@@ -499,22 +499,29 @@ export default function StudentCoursePlayer() {
                           {questions.length === 0 ? (
                             <div style={{ color: "#94a3b8", fontSize: 14 }}>Hali savollar yo'q. Birinchi bo'lib savol bering!</div>
                           ) : questions.map((q) => (
-                            <div key={q.id} style={{ padding: "14px 0", borderBottom: "1px solid #f1f5f9" }}>
-                              <div style={{ display: "flex", gap: 12 }}>
-                                <Avatar sx={{ width: 36, height: 36, bgcolor: BLUE, fontSize: 13 }}>{initials(q.author)}</Avatar>
+                            <div key={q.id} style={{ padding: "16px 0", borderBottom: "1px solid #f1f5f9" }}>
+                              <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                                <Avatar sx={{ width: 40, height: 40, bgcolor: "#2563eb", fontSize: 14, fontWeight: 700 }}>{initials(q.author)}</Avatar>
                                 <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: 700, color: BLUE, fontSize: 13 }}>{q.author}</div>
-                                  <div style={{ fontSize: 14, color: "#0f172a", marginTop: 4 }}>{q.text}</div>
+                                  <div style={{ fontWeight: 800, color: "#991b1b", fontSize: 15 }}>{q.author}</div>
+                                  <div style={{ fontSize: 14, color: "#0f172a", marginTop: 4, fontWeight: 500 }}>{q.text}</div>
                                   <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{q.createdAt}</div>
 
+                                  {/* Mentor Answer (nested card matching user image) */}
                                   {q.answer ? (
-                                    <div style={{ marginTop: 10, background: "#f8fafc", borderLeft: `3px solid ${BLUE}`, padding: "10px 14px", borderRadius: "0 8px 8px 0" }}>
-                                      <div style={{ fontWeight: 700, fontSize: 12, color: "#0f172a" }}>{q.answerAuthor || "Mentor"} (Javob):</div>
-                                      <div style={{ fontSize: 13, color: "#334155", marginTop: 2 }}>{q.answer}</div>
-                                      <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>{q.answerTime}</div>
+                                    <div style={{ display: "flex", gap: 12, marginTop: 14, background: "#f8f9fa", borderRadius: 12, padding: "14px 18px", border: "1px solid #f1f5f9" }}>
+                                      <Avatar sx={{ width: 36, height: 36, bgcolor: "#16a34a", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{initials(q.answerAuthor || "Mentor")}</Avatar>
+                                      <div style={{ flex: 1 }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                          <span style={{ fontWeight: 800, color: "#16a34a", fontSize: 14 }}>{q.answerAuthor || "Mentor"}</span>
+                                          <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>(mentor)</span>
+                                        </div>
+                                        <div style={{ fontSize: 14, color: "#0f172a", marginTop: 4, fontWeight: 500 }}>{q.answer}</div>
+                                        <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{q.answerTime || q.createdAt}</div>
+                                      </div>
                                     </div>
                                   ) : (
-                                    <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Hali javob berilmagan</div>
+                                    <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 8 }}>Hali javob berilmagan</div>
                                   )}
                                 </div>
                               </div>
