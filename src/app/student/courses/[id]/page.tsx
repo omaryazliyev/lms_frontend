@@ -146,7 +146,30 @@ export default function StudentCoursePlayer() {
 
   useEffect(() => {
     if (!activeLesson?.id) return;
-    setQuestions(loadQa(activeLesson.id));
+
+    // Fetch Q&A questions from backend API
+    api.get(`/questions/lesson/${activeLesson.id}`)
+      .then(res => {
+        const raw = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
+        if (raw.length > 0) {
+          const list = raw.map((q: any) => ({
+            id: String(q.id),
+            text: q.text,
+            author: q.student?.full_name || "O'quvchi",
+            createdAt: new Date(q.create_at || Date.now()).toLocaleString("uz-UZ"),
+            answer: q.answer || undefined,
+            answerAuthor: q.answerer?.full_name || "Mentor",
+            answerTime: q.update_at ? new Date(q.update_at).toLocaleString("uz-UZ") : undefined,
+          }));
+          setQuestions(list);
+        } else {
+          setQuestions(loadQa(activeLesson.id));
+        }
+      })
+      .catch(() => {
+        setQuestions(loadQa(activeLesson.id));
+      });
+
     setRating(Number(localStorage.getItem(`lesson-rating-${activeLesson.id}`) || 0));
     setExamAnswers({});
     setExamSubmitted(false);
@@ -238,28 +261,49 @@ export default function StudentCoursePlayer() {
       return;
     }
     const sId = user?.id || Date.now();
-    const item: QaItem = {
-      id: String(Date.now()),
-      text: qaText.trim(),
-      author: user?.full_name || "O'quvchi",
-      createdAt: new Date().toLocaleString("uz-UZ"),
-      fileName: qaFile?.name,
-    };
-    const next = [item, ...questions];
-    setQuestions(next);
-    localStorage.setItem(`lesson-qa-${activeLesson.id}`, JSON.stringify(next));
+    const trimmedText = qaText.trim();
 
-    // Send via WebSocket with studentId, studentName, courseId, courseName
+    // 1. Post to backend API
+    api.post("/questions", {
+      lessonId: activeLesson.id,
+      text: trimmedText
+    }).then(res => {
+      const q = res.data?.data;
+      const item: QaItem = {
+        id: String(q?.id || Date.now()),
+        text: trimmedText,
+        author: q?.student?.full_name || user?.full_name || "O'quvchi",
+        createdAt: new Date().toLocaleString("uz-UZ"),
+      };
+      setQuestions(prev => [item, ...prev]);
+    }).catch(() => {
+      const item: QaItem = {
+        id: String(Date.now()),
+        text: trimmedText,
+        author: user?.full_name || "O'quvchi",
+        createdAt: new Date().toLocaleString("uz-UZ"),
+      };
+      setQuestions(prev => [item, ...prev]);
+      localStorage.setItem(`lesson-qa-${activeLesson.id}`, JSON.stringify([item, ...questions]));
+    });
+
+    // 2. Broadcast live chat message
+    const payload = {
+      type: "chat_message",
+      studentId: sId,
+      studentName: user?.full_name || "O'quvchi",
+      courseId: courseId,
+      courseName: course?.name || "Kurs",
+      text: trimmedText,
+      sender: "student"
+    };
+
+    try {
+      localStorage.setItem("lms_sync_msg", JSON.stringify({ ...payload, _t: Date.now() }));
+    } catch {}
+
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: "chat_message",
-        studentId: sId,
-        studentName: user?.full_name || "O'quvchi",
-        courseId: courseId,
-        courseName: course?.name || "Kurs",
-        text: qaText.trim(),
-        sender: "student"
-      }));
+      try { wsRef.current.send(JSON.stringify(payload)); } catch {}
     }
 
     setQaText("");

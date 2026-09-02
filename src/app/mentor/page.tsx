@@ -169,6 +169,66 @@ export default function MentorPage() {
 
     loadStudentsData();
 
+    // Fetch all Q&A questions for mentor's courses from backend
+    api.get("/questions/mentor/all")
+      .then(res => {
+        const raw = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
+        if (raw.length > 0) {
+          const msgMap: Record<number, any[]> = {};
+          const notifs: any[] = [];
+
+          raw.forEach((q: any) => {
+            const sId = Number(q.studentId || q.student?.id);
+            const sName = q.student?.full_name || "O'quvchi";
+            const cName = q.lesson?.section?.course?.name || "Kurs";
+            const timeStr = q.create_at ? new Date(q.create_at).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" }) : "";
+
+            if (sId) {
+              if (!msgMap[sId]) msgMap[sId] = [];
+              msgMap[sId].push({
+                id: q.id,
+                text: q.text,
+                sender: "student",
+                senderName: sName,
+                time: timeStr
+              });
+
+              if (q.answer) {
+                msgMap[sId].push({
+                  id: q.id + 100000,
+                  text: q.answer,
+                  sender: "mentor",
+                  senderName: q.answerer?.full_name || "Mentor",
+                  time: q.update_at ? new Date(q.update_at).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" }) : timeStr
+                });
+              } else {
+                notifs.push({
+                  id: q.id,
+                  studentId: sId,
+                  studentName: sName,
+                  courseName: cName,
+                  text: q.text,
+                  time: timeStr,
+                  isRead: false
+                });
+              }
+
+              // Auto-include student in students list
+              setStudents(prev => {
+                if (!prev.some(s => Number(s.id) === sId)) {
+                  return [...prev, { id: sId, full_name: sName, course: { name: cName }, phone: q.student?.phone || "—" }];
+                }
+                return prev;
+              });
+            }
+          });
+
+          setQaMessages(msgMap);
+          if (notifs.length > 0) setNotifications(notifs);
+        }
+      })
+      .catch(() => {});
+
     api.get("/homeworks")
       .then(res => setHomeworks(Array.isArray(res.data) ? res.data : []))
       .catch(() => setHomeworks([]))
@@ -398,10 +458,11 @@ export default function MentorPage() {
     if (!qaInput.trim() || !selectedQAStudent) return;
     const sId = selectedQAStudent.id;
     const timeStr = new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
+    const trimmedInput = qaInput.trim();
 
     const newMsg: QAMessage = {
       id: Date.now(),
-      text: qaInput,
+      text: trimmedInput,
       sender: "mentor",
       senderName: user?.full_name || "Mentor",
       time: timeStr
@@ -412,23 +473,28 @@ export default function MentorPage() {
       [sId]: [...(prev[sId] || []), newMsg]
     }));
 
+    // Find last student question for this student and answer it on backend API
+    const studentMsgs = qaMessages[sId] || [];
+    const lastQuestion = [...studentMsgs].reverse().find(m => m.sender === "student");
+    if (lastQuestion) {
+      api.patch(`/questions/${lastQuestion.id}/answer`, { answer: trimmedInput }).catch(() => {});
+    }
+
     const payload = {
       type: "chat_message",
       studentId: sId,
       studentName: getStudentName(selectedQAStudent),
       mentorName: user?.full_name || "Mentor",
-      text: qaInput,
+      text: trimmedInput,
       sender: "mentor",
       time: timeStr
     };
 
-    // 1. BroadcastChannel / LocalStorage Sync
     try {
       if (channelRef.current) channelRef.current.postMessage(payload);
       localStorage.setItem("lms_sync_msg", JSON.stringify({ ...payload, _t: Date.now() }));
     } catch {}
 
-    // 2. WebSocket Sync
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       try {
         wsRef.current.send(JSON.stringify(payload));
