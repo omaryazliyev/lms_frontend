@@ -102,6 +102,9 @@ export default function MentorPage() {
         setUser({ id: Number(p.id || p.userId || p.sub), full_name: p.full_name || "Mentor", role: p.role });
       } catch {}
     }
+    // Clear stale localStorage students store to prevent duplicates
+    // Backend /mentor/my-students is now the source of truth
+    localStorage.removeItem("lms_students_store");
   }, []);
 
   // Fetch Courses, Students, Homeworks
@@ -115,8 +118,7 @@ export default function MentorPage() {
       try {
         setLoadingStudents(true);
 
-        // PRIMARY: Use dedicated /mentor/my-students endpoint (correct backend endpoint for mentor)
-        // This queries MentorProfile -> Courses -> Students chain directly
+        // PRIMARY: Use dedicated /mentor/my-students endpoint
         const myStudentsRes = await api.get("/mentor/my-students").catch(() => null);
         let fetched: Student[] = [];
 
@@ -126,16 +128,34 @@ export default function MentorPage() {
           fetched = myStudentsRes.data;
         }
 
-        // Also check local sync storage for newly chat-registered students
+        // Build a Set of phones already in backend data to avoid duplicates from localStorage
+        const backendPhones = new Set<string>(
+          fetched.map((s: any) => (s.phone || s.user?.phone || "").replace(/\s/g, "")).filter(Boolean)
+        );
+        const backendIds = new Set<number>(fetched.map((s: any) => Number(s.id)));
+
+        // Only add localStorage students that are NOT already in backend (by phone or id)
         let localStudents: Student[] = [];
         try {
-          localStudents = JSON.parse(localStorage.getItem("lms_students_store") || "[]");
+          const raw = JSON.parse(localStorage.getItem("lms_students_store") || "[]");
+          localStudents = raw.filter((s: any) => {
+            const phone = (s.phone || "").replace(/\s/g, "");
+            const id = Number(s.id);
+            // Skip if already in backend data
+            if (backendIds.has(id)) return false;
+            if (phone && backendPhones.has(phone)) return false;
+            return true;
+          });
         } catch {}
 
+        // Deduplicate by ID (backend data takes priority)
         const map = new Map<number, Student>();
-        [...fetched, ...localStudents].forEach((s: any, idx: number) => {
-          const sId = Number(s.id || s.userId || idx + 1);
-          map.set(sId, { ...s, id: sId });
+        fetched.forEach((s: any) => {
+          map.set(Number(s.id), { ...s, id: Number(s.id) });
+        });
+        localStudents.forEach((s: any, idx: number) => {
+          const sId = Number(s.id || Date.now() + idx);
+          if (!map.has(sId)) map.set(sId, { ...s, id: sId });
         });
 
         setStudents(Array.from(map.values()));
@@ -143,9 +163,9 @@ export default function MentorPage() {
         console.error(e);
       } finally {
         setLoadingStudents(false);
-
       }
     };
+
 
     loadStudentsData();
 
