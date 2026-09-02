@@ -123,6 +123,11 @@ export default function Register() {
 
       const { access_token, refresh_token } = res.data.data;
       localStorage.setItem("access_token", access_token);
+      try {
+        const existing = JSON.parse(localStorage.getItem("lms_students_store") || "[]");
+        const newStudent = { id: Date.now(), full_name: fullName.trim(), phone: cleanPhone, courseId: courseIdFromUrl, course: { name: courseNameFromUrl || "Kurs" }, create_at: new Date().toISOString() };
+        localStorage.setItem("lms_students_store", JSON.stringify([newStudent, ...existing]));
+      } catch (e) {}
       localStorage.setItem("refresh_token", refresh_token);
 
       if (res.data.success) {

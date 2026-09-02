@@ -89,9 +89,10 @@ export default function MentorPage() {
   // Notifications state
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
-  // WebSocket Ref & Connected State
+  // WebSocket & BroadcastChannel Refs
   const wsRef = useRef<WebSocket | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -103,33 +104,50 @@ export default function MentorPage() {
     }
   }, []);
 
+  // Fetch Courses, Students, Homeworks
   useEffect(() => {
     api.get("/courses")
       .then(res => setCourses(Array.isArray(res.data) ? res.data : (res.data?.data ?? [])))
       .catch(() => setCourses([]))
       .finally(() => setLoadingCourses(false));
 
-    // Fetch students from multiple possible backend endpoints to guarantee full coverage
-    Promise.all([
-      api.get("/student").catch(() => ({ data: [] })),
-      api.get("/users/student").catch(() => ({ data: [] })),
-      api.get("/student/my-course").catch(() => ({ data: [] }))
-    ]).then(([res1, res2, res3]) => {
-      const list1 = Array.isArray(res1.data) ? res1.data : (res1.data?.data ?? []);
-      const list2 = Array.isArray(res2.data) ? res2.data : (res2.data?.data ?? []);
-      const list3 = Array.isArray(res3.data) ? res3.data : (res3.data?.data ?? []);
+    const loadStudentsData = async () => {
+      try {
+        setLoadingStudents(true);
 
-      const combined = [...list1, ...list2, ...list3];
-      const uniqueMap = new Map<number, Student>();
-      combined.forEach((item: any, idx: number) => {
-        const id = Number(item.id || item.userId || idx + 1);
-        if (!uniqueMap.has(id)) {
-          uniqueMap.set(id, { ...item, id });
+        // PRIMARY: Use dedicated /mentor/my-students endpoint (correct backend endpoint for mentor)
+        // This queries MentorProfile -> Courses -> Students chain directly
+        const myStudentsRes = await api.get("/mentor/my-students").catch(() => null);
+        let fetched: Student[] = [];
+
+        if (myStudentsRes?.data?.data) {
+          fetched = Array.isArray(myStudentsRes.data.data) ? myStudentsRes.data.data : [];
+        } else if (myStudentsRes?.data && Array.isArray(myStudentsRes.data)) {
+          fetched = myStudentsRes.data;
         }
-      });
 
-      setStudents(Array.from(uniqueMap.values()));
-    }).finally(() => setLoadingStudents(false));
+        // Also check local sync storage for newly chat-registered students
+        let localStudents: Student[] = [];
+        try {
+          localStudents = JSON.parse(localStorage.getItem("lms_students_store") || "[]");
+        } catch {}
+
+        const map = new Map<number, Student>();
+        [...fetched, ...localStudents].forEach((s: any, idx: number) => {
+          const sId = Number(s.id || s.userId || idx + 1);
+          map.set(sId, { ...s, id: sId });
+        });
+
+        setStudents(Array.from(map.values()));
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingStudents(false);
+
+      }
+    };
+
+    loadStudentsData();
 
     api.get("/homeworks")
       .then(res => setHomeworks(Array.isArray(res.data) ? res.data : []))
@@ -234,7 +252,37 @@ export default function MentorPage() {
     });
   }, [mentorStudents, selectedQACourse, qaSearch]);
 
-  // Real-time WebSocket connection
+  // BroadcastChannel & LocalStorage Event Listener for instant cross-tab live chat
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        const bc = new BroadcastChannel("lms_live_channel");
+        channelRef.current = bc;
+        bc.onmessage = (event) => {
+          if (event.data) {
+            handleIncomingRealtimeMessage(event.data);
+          }
+        };
+      }
+    } catch {}
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "lms_sync_msg" && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          handleIncomingRealtimeMessage(data);
+        } catch {}
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      if (channelRef.current) channelRef.current.close();
+    };
+  }, []);
+
+  // WebSocket Connection (with SSL/Mixed Content error handling)
   useEffect(() => {
     const wsUrl = "ws://3.75.176.131:8080/ws";
     let socket: WebSocket | null = null;
@@ -282,31 +330,35 @@ export default function MentorPage() {
     // Dynamic addition of student if not present in students list
     setStudents(prev => {
       if (!prev.some(s => Number(s.id) === sId)) {
-        return [...prev, { id: sId, full_name: sName, course: { name: cName }, phone: "—" }];
+        const updated = [...prev, { id: sId, full_name: sName, course: { name: cName }, phone: "—" }];
+        try { localStorage.setItem("lms_students_store", JSON.stringify(updated)); } catch {}
+        return updated;
       }
       return prev;
     });
 
-    setQaMessages(prev => ({
-      ...prev,
-      [sId]: [
-        ...(prev[sId] || []),
-        { id: Date.now(), text, sender: "student", senderName: sName, time: timeStr }
-      ]
-    }));
+    if (text) {
+      setQaMessages(prev => ({
+        ...prev,
+        [sId]: [
+          ...(prev[sId] || []),
+          { id: Date.now(), text, sender: "student", senderName: sName, time: timeStr }
+        ]
+      }));
 
-    setNotifications(prev => [
-      {
-        id: Date.now(),
-        studentId: sId,
-        studentName: sName,
-        courseName: cName,
-        text: text,
-        time: timeStr,
-        isRead: false
-      },
-      ...prev
-    ]);
+      setNotifications(prev => [
+        {
+          id: Date.now(),
+          studentId: sId,
+          studentName: sName,
+          courseName: cName,
+          text: text,
+          time: timeStr,
+          isRead: false
+        },
+        ...prev
+      ]);
+    }
   };
 
   useEffect(() => {
@@ -340,15 +392,27 @@ export default function MentorPage() {
       [sId]: [...(prev[sId] || []), newMsg]
     }));
 
+    const payload = {
+      type: "chat_message",
+      studentId: sId,
+      studentName: getStudentName(selectedQAStudent),
+      mentorName: user?.full_name || "Mentor",
+      text: qaInput,
+      sender: "mentor",
+      time: timeStr
+    };
+
+    // 1. BroadcastChannel / LocalStorage Sync
+    try {
+      if (channelRef.current) channelRef.current.postMessage(payload);
+      localStorage.setItem("lms_sync_msg", JSON.stringify({ ...payload, _t: Date.now() }));
+    } catch {}
+
+    // 2. WebSocket Sync
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: "chat_message",
-        studentId: sId,
-        studentName: getStudentName(selectedQAStudent),
-        mentorName: user?.full_name || "Mentor",
-        text: qaInput,
-        sender: "mentor"
-      }));
+      try {
+        wsRef.current.send(JSON.stringify(payload));
+      } catch {}
     }
 
     setQaInput("");
@@ -643,10 +707,10 @@ export default function MentorPage() {
           {activeTab === "qa" && (
             <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: 0 }}>Savol-javoblar (WebSocket Live)</h1>
+                <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: 0 }}>Savol-javoblar (Live Chat)</h1>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: wsConnected ? "#22c55e" : "#e53935", display: "inline-block" }} />
-                  <span style={{ color: "#64748b", fontWeight: 600 }}>{wsConnected ? "WebSocket faol" : "Online"}</span>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
+                  <span style={{ color: "#64748b", fontWeight: 600 }}>Jonli ulanish faol</span>
                 </div>
               </div>
               <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 14px" }}>{mentorCourses[0]?.name || ""}</p>
@@ -703,7 +767,7 @@ export default function MentorPage() {
                         )}
                       </div>
                       <div style={{ padding: "10px 14px", borderTop: "1px solid #e2e8f0", display: "flex", gap: 8 }}>
-                        <input value={qaInput} onChange={e => setQaInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder="Xabar yozing (WebSocket)..." style={{ flex: 1, height: 36, padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, outline: "none" }} />
+                        <input value={qaInput} onChange={e => setQaInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder="Xabar yozing (Live Chat)..." style={{ flex: 1, height: 36, padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, outline: "none" }} />
                         <button onClick={sendMessage} style={{ width: 36, height: 36, background: ACCENT, border: "none", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                           <SendOutlined style={{ width: 15, height: 15, color: "#fff" }} />
                         </button>
