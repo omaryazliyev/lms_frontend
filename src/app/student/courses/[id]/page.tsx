@@ -32,9 +32,8 @@ type Lesson = {
   exams?: { id: number; question: string; variantA: string; variantB: string; variantC: string; variantD: string; answer: string }[];
 };
 
-type Section = { id: number; name: string; lessons: Lesson[] };
-type Course = { id: number; name: string; sections: Section[] };
-type QaItem = { id: string; text: string; author: string; createdAt: string; fileName?: string; answer?: string; answerAuthor?: string; answerTime?: string };
+type QaReply = { id: number; text: string; senderRole?: string; author: string; time: string };
+type QaItem = { id: string; text: string; author: string; createdAt: string; fileName?: string; answer?: string; answerAuthor?: string; answerTime?: string; replies?: QaReply[] };
 
 interface NotificationItem {
   id: number;
@@ -86,6 +85,7 @@ export default function StudentCoursePlayer() {
   const [qaText, setQaText] = useState("");
   const [qaFile, setQaFile] = useState<File | null>(null);
   const [questions, setQuestions] = useState<QaItem[]>([]);
+  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
   const [examAnswers, setExamAnswers] = useState<Record<number, string>>({});
   const [examSubmitted, setExamSubmitted] = useState(false);
 
@@ -159,6 +159,7 @@ export default function StudentCoursePlayer() {
           answer: q.answer || undefined,
           answerAuthor: q.answerer?.full_name || "Mentor",
           answerTime: q.update_at ? new Date(q.update_at).toLocaleString("uz-UZ") : undefined,
+          replies: Array.isArray(q.replies) ? q.replies : [],
         }));
         setQuestions(list);
 
@@ -204,6 +205,7 @@ export default function StudentCoursePlayer() {
               answer: q.answer || undefined,
               answerAuthor: q.answerer?.full_name || "Mentor",
               answerTime: q.update_at ? new Date(q.update_at).toLocaleString("uz-UZ") : undefined,
+          replies: Array.isArray(q.replies) ? q.replies : [],
             }));
             setQuestions(list);
 
@@ -317,6 +319,37 @@ export default function StudentCoursePlayer() {
   );
   const currentIndex = allLessons.findIndex((l) => l.id === activeLesson?.id);
   const nextLesson = currentIndex >= 0 ? allLessons[currentIndex + 1] : null;
+
+  const handleSendReply = (questionId: string) => {
+    const textToSend = (replyInputs[questionId] || "").trim();
+    if (!textToSend) return;
+
+    api.patch(`/questions/${questionId}/reply`, { text: textToSend })
+      .then(res => {
+        const updatedQ = res.data?.data;
+        if (updatedQ) {
+          setQuestions(prev => prev.map(q => q.id === questionId ? {
+            ...q,
+            replies: Array.isArray(updatedQ.replies) ? updatedQ.replies : []
+          } : q));
+        }
+      })
+      .catch(() => {
+        setQuestions(prev => prev.map(q => {
+          if (q.id !== questionId) return q;
+          const newRep: QaReply = {
+            id: Date.now(),
+            text: textToSend,
+            senderRole: "STUDENT",
+            author: user?.full_name || "O'quvchi",
+            time: new Date().toISOString()
+          };
+          return { ...q, replies: [...(q.replies || []), newRep] };
+        }));
+      });
+
+    setReplyInputs(p => ({ ...p, [questionId]: "" }));
+  };
 
   const saveQuestion = () => {
     if (!activeLesson || !qaText.trim()) {
@@ -629,7 +662,7 @@ export default function StudentCoursePlayer() {
                                   <div style={{ fontSize: 14, color: "#0f172a", marginTop: 4, fontWeight: 500 }}>{q.text}</div>
                                   <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{q.createdAt}</div>
 
-                                  {/* Mentor Answer (nested card matching user image) */}
+                                  {/* Mentor Answer */}
                                   {q.answer ? (
                                     <div style={{ display: "flex", gap: 12, marginTop: 14, background: "#f8f9fa", borderRadius: 12, padding: "14px 18px", border: "1px solid #f1f5f9" }}>
                                       <Avatar sx={{ width: 36, height: 36, bgcolor: "#16a34a", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{initials(q.answerAuthor || "Mentor")}</Avatar>
@@ -645,6 +678,47 @@ export default function StudentCoursePlayer() {
                                   ) : (
                                     <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 8 }}>Hali javob berilmagan</div>
                                   )}
+
+                                  {/* Follow-up Chat Replies (Nested under answer, matching chat style) */}
+                                  {Array.isArray(q.replies) && q.replies.length > 0 && (
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12, paddingLeft: 12, borderLeft: "2px solid #e2e8f0" }}>
+                                      {q.replies.map((rep, rIdx) => {
+                                        const isMentorRep = rep.senderRole === "TEACHER" || rep.senderRole === "MENTOR" || rep.author?.toLowerCase().includes("mentor");
+                                        return (
+                                          <div key={rep.id || rIdx} style={{ display: "flex", gap: 12, background: isMentorRep ? "#f8f9fa" : "#eff6ff", borderRadius: 12, padding: "12px 16px", border: `1px solid ${isMentorRep ? "#f1f5f9" : "#bfdbfe"}` }}>
+                                            <Avatar sx={{ width: 32, height: 32, bgcolor: isMentorRep ? "#16a34a" : "#2563eb", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                                              {initials(rep.author)}
+                                            </Avatar>
+                                            <div style={{ flex: 1 }}>
+                                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                <span style={{ fontWeight: 800, color: isMentorRep ? "#16a34a" : "#991b1b", fontSize: 13 }}>{rep.author}</span>
+                                                {isMentorRep && <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>(mentor)</span>}
+                                              </div>
+                                              <div style={{ fontSize: 14, color: "#0f172a", marginTop: 4, fontWeight: 500 }}>{rep.text}</div>
+                                              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{rep.time ? new Date(rep.time).toLocaleString("uz-UZ") : ""}</div>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+
+                                  {/* Inline Chat Reply Input */}
+                                  <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                                    <input
+                                      value={replyInputs[q.id] || ""}
+                                      onChange={e => setReplyInputs(p => ({ ...p, [q.id]: e.target.value }))}
+                                      onKeyDown={e => { if (e.key === "Enter") handleSendReply(q.id); }}
+                                      placeholder="Javobning tagidan yozish (chat)..."
+                                      style={{ flex: 1, height: 36, border: "1px solid #cbd5e1", borderRadius: 8, padding: "0 12px", fontSize: 13, outline: "none" }}
+                                    />
+                                    <button
+                                      onClick={() => handleSendReply(q.id)}
+                                      style={{ height: 36, padding: "0 14px", background: BLUE, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                                    >
+                                      <SendOutlined style={{ width: 14, height: 14 }} /> Yuborish
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
