@@ -13,6 +13,7 @@ import HourglassEmptyOutlined from "@mui/icons-material/HourglassEmptyOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
+import AddCardOutlined from "@mui/icons-material/AddCardOutlined";
 
 interface Course {
   id: number;
@@ -43,13 +44,16 @@ export default function PaymentsTab() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [togglingId, setTogglingId] = useState<number | null>(null);
-  const [assigningId, setAssigningId] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<number | null>(null);
   const [alert, setAlert] = useState<{ open: boolean; msg: string; sev: "success" | "error" }>({
     open: false, msg: "", sev: "success",
   });
+
+  // ─── Yangi kurs so'rovlari (alohida bo'lim) ───
+  const [newCourseRequests, setNewCourseRequests] = useState<any[]>([]);
+  const [approvingReqId, setApprovingReqId] = useState<number | null>(null);
 
   const fetchStudents = useCallback(async () => {
     try {
@@ -74,76 +78,63 @@ export default function PaymentsTab() {
     }
   }, []);
 
-  const [paymentRequests, setPaymentRequests] = useState<any[]>([]);
-
-  const loadPaymentRequests = () => {
+  const loadNewCourseRequests = () => {
     try {
       const raw = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
-      setPaymentRequests(raw.filter((r: any) => r.status === "PENDING"));
+      // Faqat PENDING so'rovlar
+      setNewCourseRequests(raw.filter((r: any) => r.status === "PENDING"));
     } catch {}
   };
 
   useEffect(() => {
     fetchStudents();
     fetchCourses();
-    loadPaymentRequests();
-    const handleStorage = () => loadPaymentRequests();
+    loadNewCourseRequests();
+    const handleStorage = () => loadNewCourseRequests();
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, [fetchStudents, fetchCourses]);
 
-  const handleApprovePaymentRequest = async (reqItem: any) => {
+  // ─── Yangi kurs so'rovini tasdiqlash ───
+  const handleApproveNewCourse = async (req: any) => {
+    setApprovingReqId(req.id);
     try {
-      if (reqItem.courseId && reqItem.studentId) {
-        await api.patch(`/student/${reqItem.studentId}/assign-course`, { courseId: reqItem.courseId }).catch(() => {});
-        await api.patch(`/student/${reqItem.studentId}/toggle-paid`).catch(() => {});
+      // Kursni talabaga biriktir (assign)
+      if (req.courseId && req.studentId) {
+        await api.patch(`/student/${req.studentId}/assign-course`, { courseId: req.courseId }).catch(() => {});
+        await api.patch(`/student/${req.studentId}/toggle-paid`).catch(() => {});
       }
 
+      // localStorage dan olib tashlash
       const raw = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
-      const updated = raw.map((r: any) => r.id === reqItem.id ? { ...r, status: "APPROVED" } : r);
+      const updated = raw.map((r: any) => r.id === req.id ? { ...r, status: "APPROVED" } : r);
       localStorage.setItem("lms_payment_requests", JSON.stringify(updated));
       window.dispatchEvent(new Event("storage"));
 
-      const foundCourse = courses.find(c => c.id === reqItem.courseId) || { id: reqItem.courseId, name: reqItem.courseName, prise: reqItem.coursePrice };
-
-      // Update students state immediately so the row stays in table as Tasdiqlangan
-      setStudents(prev => {
-        const exists = prev.some(s => s.id === reqItem.studentId);
-        if (exists) {
-          return prev.map(s => s.id === reqItem.studentId ? { ...s, isPaid: true, courseId: reqItem.courseId, course: foundCourse } : s);
-        } else {
-          return [{
-            id: reqItem.studentId,
-            full_name: reqItem.studentName,
-            phone: reqItem.studentPhone,
-            isPaid: true,
-            create_at: reqItem.createdAt || new Date().toISOString(),
-            courseId: reqItem.courseId,
-            course: foundCourse
-          }, ...prev];
-        }
-      });
-
-      setPaymentRequests(prev => prev.filter(r => r.id !== reqItem.id));
+      setNewCourseRequests(prev => prev.filter(r => r.id !== req.id));
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2500);
+      // Asosiy jadval yangilansin
       fetchStudents();
-    } catch (e) {
-      console.error(e);
+    } catch {
       setAlert({ open: true, msg: "Tasdiqlashda xatolik yuz berdi", sev: "error" });
+    } finally {
+      setApprovingReqId(null);
     }
   };
 
-  const handleRejectPaymentRequest = (reqId: number) => {
+  // ─── Yangi kurs so'rovini rad etish ───
+  const handleRejectNewCourse = (reqId: number) => {
     try {
       const raw = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
       const updated = raw.filter((r: any) => r.id !== reqId);
       localStorage.setItem("lms_payment_requests", JSON.stringify(updated));
       window.dispatchEvent(new Event("storage"));
-      setPaymentRequests(prev => prev.filter(r => r.id !== reqId));
+      setNewCourseRequests(prev => prev.filter(r => r.id !== reqId));
     } catch {}
   };
 
+  // ─── Asosiy talabalar jadvali: to'lov holati toggle ───
   const handleTogglePaid = async (student: Student) => {
     setTogglingId(student.id);
     try {
@@ -161,25 +152,6 @@ export default function PaymentsTab() {
       setAlert({ open: true, msg: "Xatolik yuz berdi", sev: "error" });
     } finally {
       setTogglingId(null);
-    }
-  };
-
-  const handleAssignCourse = async (studentId: number, courseId: number | null) => {
-    setAssigningId(studentId);
-    try {
-      await api.patch(`/student/${studentId}/assign-course`, { courseId });
-      setStudents(prev =>
-        prev.map(s => {
-          if (s.id !== studentId) return s;
-          const foundCourse = courses.find(c => c.id === courseId) || null;
-          return { ...s, courseId, course: foundCourse };
-        })
-      );
-      setAlert({ open: true, msg: "Kurs muvaffaqiyatli belgilandi!", sev: "success" });
-    } catch {
-      setAlert({ open: true, msg: "Kursni belgilashda xatolik", sev: "error" });
-    } finally {
-      setAssigningId(null);
     }
   };
 
@@ -226,7 +198,7 @@ export default function PaymentsTab() {
 
   return (
     <div>
-      {/* Header */}
+      {/* ─── Header ─── */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", margin: 0 }}>To'lovlar</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 13, color: "#64748b" }}>
@@ -236,6 +208,169 @@ export default function PaymentsTab() {
         </div>
       </div>
 
+      {/* ═══════════════════════════════════════════════════
+          YANGI KURS SO'ROVLARI — ALOHIDA BO'LIM
+          (Faqat mavjud studentlar yangi kurs sotib olganda)
+      ═══════════════════════════════════════════════════ */}
+      {newCourseRequests.length > 0 && (
+        <div style={{ marginBottom: 32 }}>
+          {/* Sarlavha */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            marginBottom: 12
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: "linear-gradient(135deg, #f97316, #ea580c)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 4px 12px rgba(249,115,22,0.3)"
+            }}>
+              <AddCardOutlined style={{ width: 18, height: 18, color: "#fff" }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>
+                Yangi kurs so'rovlari
+              </div>
+              <div style={{ fontSize: 12, color: "#64748b" }}>
+                Mavjud talabalardan {newCourseRequests.length} ta yangi kurs to'lov so'rovi
+              </div>
+            </div>
+            <div style={{
+              marginLeft: "auto",
+              padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+              background: "#fff7ed", color: "#ea580c", border: "1px solid #fed7aa"
+            }}>
+              {newCourseRequests.length} ta kutilmoqda
+            </div>
+          </div>
+
+          {/* Yangi kurs jadvali */}
+          <div style={{
+            background: "#fff", borderRadius: 12,
+            border: "1px solid #fed7aa",
+            overflow: "hidden",
+            boxShadow: "0 1px 3px rgba(249,115,22,0.08)"
+          }}>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#fff7ed" }}>
+                    {["Talaba", "Telefon", "So'ralgan kurs", "Narxi", "Holati", "Tasdiqlash", "Rad etish"].map(h => (
+                      <th key={h} style={{
+                        padding: "11px 16px", textAlign: "left", fontSize: 12,
+                        fontWeight: 700, color: "#92400e", borderBottom: "1px solid #fed7aa",
+                        whiteSpace: "nowrap"
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {newCourseRequests.map((req, idx) => (
+                    <tr key={`newreq-${req.id}`} style={{
+                      borderBottom: idx < newCourseRequests.length - 1 ? "1px solid #fff7ed" : "none",
+                      background: "#fff"
+                    }}>
+                      {/* Talaba */}
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <Avatar sx={{ width: 32, height: 32, fontSize: 12, fontWeight: 700, bgcolor: "#f97316" }}>
+                            {initials(req.studentName)}
+                          </Avatar>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                              {req.studentName}
+                            </div>
+                            <div style={{ fontSize: 11, color: "#94a3b8" }}>{formatDate(req.createdAt)}</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Telefon */}
+                      <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569", fontWeight: 600 }}>
+                        {req.studentPhone || "—"}
+                      </td>
+
+                      {/* Kurs nomi */}
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <SchoolOutlined style={{ width: 15, height: 15, color: "#3b82f6", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
+                            {req.courseName}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Narxi */}
+                      <td style={{ padding: "12px 16px" }}>
+                        {req.coursePrice !== undefined && (
+                          <span style={{ fontSize: 13, color: "#2563eb", fontWeight: 700 }}>
+                            {Number(req.coursePrice).toLocaleString("uz-UZ")} UZS
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Holati */}
+                      <td style={{ padding: "12px 16px" }}>
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+                          background: "#fff7ed", color: "#c2410c", border: "1px solid #fed7aa"
+                        }}>
+                          <HourglassEmptyOutlined style={{ width: 13, height: 13 }} />
+                          Kutilmoqda
+                        </span>
+                      </td>
+
+                      {/* Tasdiqlash */}
+                      <td style={{ padding: "12px 16px" }}>
+                        <button
+                          onClick={() => handleApproveNewCourse(req)}
+                          disabled={approvingReqId === req.id}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 5,
+                            padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                            cursor: approvingReqId === req.id ? "not-allowed" : "pointer",
+                            border: "none", transition: "all 0.2s",
+                            background: "#dbeafe", color: BLUE,
+                            opacity: approvingReqId === req.id ? 0.6 : 1,
+                          }}
+                        >
+                          {approvingReqId === req.id
+                            ? <CircularProgress size={12} style={{ color: BLUE }} />
+                            : <><CheckCircleOutlined style={{ width: 13, height: 13 }} /> Tasdiqlash</>
+                          }
+                        </button>
+                      </td>
+
+                      {/* Rad etish */}
+                      <td style={{ padding: "12px 16px" }}>
+                        <button
+                          onClick={() => handleRejectNewCourse(req.id)}
+                          style={{
+                            width: 32, height: 32, borderRadius: 8,
+                            border: "1px solid #fecaca", background: "#fff",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            cursor: "pointer", transition: "all 0.2s"
+                          }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fee2e2"; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                        >
+                          <DeleteOutlined style={{ width: 15, height: 15, color: "#ef4444" }} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════
+          ASOSIY TO'LOVLAR JADVALI — O'ZGARMASIN
+          (Barcha talabalar: kurs nomi, narxi, holati)
+      ═══════════════════════════════════════════════ */}
 
       {/* Toolbar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 12 }}>
@@ -272,7 +407,7 @@ export default function PaymentsTab() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Asosiy jadval */}
       <div style={{
         background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0",
         overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
@@ -296,82 +431,7 @@ export default function PaymentsTab() {
                 </tr>
               </thead>
               <tbody>
-                {paymentRequests.map((req) => (
-                  <tr key={`req-${req.id}`} style={{ borderBottom: "1px solid #fed7aa", background: "#fff7ed" }}>
-                    <td style={{ padding: "12px 16px", fontSize: 13, color: "#c2410c", fontWeight: 700 }}>
-                      {req.studentId || "NEW"}
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <Avatar sx={{ width: 32, height: 32, fontSize: 12, fontWeight: 700, bgcolor: "#f97316" }}>
-                          {initials(req.studentName)}
-                        </Avatar>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-                            {req.studentName}
-                          </div>
-                          <div style={{ fontSize: 11, color: "#ea580c", fontWeight: 600 }}>{formatDate(req.createdAt)}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569", fontWeight: 600 }}>
-                      {req.studentPhone || "—"}
-                    </td>
-                    <td style={{ padding: "12px 16px", minWidth: 190 }}>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <SchoolOutlined style={{ width: 16, height: 16, color: "#3b82f6", flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
-                            {req.courseName}
-                          </span>
-                        </div>
-                        {req.coursePrice !== undefined && (
-                          <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 700, marginLeft: 22, marginTop: 2 }}>
-                            {Number(req.coursePrice).toLocaleString("uz-UZ")} UZS
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <span style={{
-                        display: "inline-flex", alignItems: "center", gap: 4,
-                        padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600,
-                        background: "#fff7ed", color: "#c2410c", border: "1px solid #fed7aa"
-                      }}>
-                        <HourglassEmptyOutlined style={{ width: 13, height: 13 }} />
-                        Kutilmoqda
-                      </span>
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <button
-                        onClick={() => handleApprovePaymentRequest(req)}
-                        style={{
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                          padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-                          cursor: "pointer", border: "none", transition: "all 0.2s",
-                          background: "#dbeafe", color: BLUE,
-                        }}
-                      >
-                        <CheckCircleOutlined style={{ width: 13, height: 13 }} /> Tasdiqlash
-                      </button>
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <button
-                        onClick={() => handleRejectPaymentRequest(req.id)}
-                        style={{
-                          width: 30, height: 30, borderRadius: 7,
-                          border: "1px solid #fecaca", background: "#fff",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          cursor: "pointer", transition: "all 0.2s"
-                        }}
-                      >
-                        <DeleteOutlined style={{ width: 15, height: 15, color: "#ef4444" }} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-
-                {paginated.length === 0 && paymentRequests.length === 0 ? (
+                {paginated.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
                       Talabalar topilmadi
@@ -414,7 +474,7 @@ export default function PaymentsTab() {
                       {student.phone}
                     </td>
 
-                    {/* Course display / assign */}
+                    {/* Kurs nomi va narxi — O'ZGARMAYDI */}
                     <td style={{ padding: "12px 16px", minWidth: 190 }}>
                       {student.course ? (
                         <div>
@@ -514,7 +574,7 @@ export default function PaymentsTab() {
           </div>
         )}
 
-        {/* Footer */}
+        {/* Footer pagination */}
         {!loading && (
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -563,7 +623,7 @@ export default function PaymentsTab() {
         )}
       </div>
 
-      {/* Snackbar */}
+      {/* ─── Snackbar ─── */}
       <Snackbar
         open={alert.open}
         autoHideDuration={3500}
@@ -580,7 +640,7 @@ export default function PaymentsTab() {
         </Alert>
       </Snackbar>
 
-      {/* Muvaffaqiyat modali */}
+      {/* ─── Muvaffaqiyat modali ─── */}
       {showSuccess && (
         <div
           onClick={() => setShowSuccess(false)}
@@ -653,7 +713,7 @@ export default function PaymentsTab() {
         </div>
       )}
 
-      {/* O'chirishni tasdiqlash modali */}
+      {/* ─── O'chirishni tasdiqlash modali ─── */}
       {deleteConfirmOpen && (
         <div
           onClick={() => setDeleteConfirmOpen(false)}
@@ -678,7 +738,6 @@ export default function PaymentsTab() {
               width: "90%",
             }}
           >
-            {/* Warning Trash Icon Container */}
             <div style={{
               width: 72, height: 72, borderRadius: "50%",
               background: "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center",
@@ -691,8 +750,6 @@ export default function PaymentsTab() {
                 <line x1="14" y1="11" x2="14" y2="17"></line>
               </svg>
             </div>
-
-            {/* Modal Text */}
             <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 8 }}>
               <h3 style={{
                 fontSize: 19, fontWeight: 800, color: "#0f172a",
@@ -704,8 +761,6 @@ export default function PaymentsTab() {
                 Haqiqatan ham ushbu talabani tizimdan o'chirib tashlamoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.
               </p>
             </div>
-
-            {/* Buttons Row */}
             <div style={{ display: "flex", gap: 12, width: "100%", marginTop: 8 }}>
               <button
                 onClick={() => setDeleteConfirmOpen(false)}
@@ -735,12 +790,8 @@ export default function PaymentsTab() {
                   cursor: "pointer", transition: "all 0.2s",
                   boxShadow: "0 4px 12px rgba(239,68,68,0.25)"
                 }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = "#dc2626";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = "#ef4444";
-                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#dc2626"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#ef4444"; }}
               >
                 O'chirish
               </button>
