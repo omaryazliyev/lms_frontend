@@ -1,6 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
+import React, { useEffect, useState } from "react";
 import { Avatar, Badge, CircularProgress } from "@mui/material";
 import GridViewOutlined from "@mui/icons-material/GridViewOutlined";
 import PeopleOutlined from "@mui/icons-material/PeopleOutlined";
@@ -24,15 +23,15 @@ interface Course {
   id: number; name: string; prise: number; level: string;
   banner: string | null; isActive: boolean;
   category?: { name: string };
-  mentorProfile?: { id: number; user?: { id: number; full_name: string } };
+  mentorProfile?: { id: number; usersId?: number; user?: { id: number; full_name: string } };
 }
 interface Student {
   id: number; full_name: string; phone: string;
-  create_at: string; course?: { prise: number; name: string };
+  create_at: string; courseId?: number; course?: { id?: number; prise: number; name: string };
 }
 interface Homework {
   id: number; description: string; file?: string;
-  lesson?: any;
+  lesson?: { name: string; section?: { name: string; course?: { id?: number; name: string } } };
 }
 interface QAMessage { id: number; text: string; sender: "student" | "mentor"; senderName: string; time: string; }
 
@@ -42,14 +41,17 @@ export default function MentorPage() {
   const [materiallarOpen, setMateriallarOpen] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profileOpen, setProfileOpen] = useState(false);
+
   const [courses, setCourses] = useState<Course[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [homeworks, setHomeworks] = useState<Homework[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [loadingHW, setLoadingHW] = useState(true);
+
   const [selectedCourseFilter, setSelectedCourseFilter] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
+
   const [selectedQAStudent, setSelectedQAStudent] = useState<Student | null>(null);
   const [qaMessages, setQaMessages] = useState<QAMessage[]>([]);
   const [qaInput, setQaInput] = useState("");
@@ -61,7 +63,7 @@ export default function MentorPage() {
     if (token) {
       try {
         const p = JSON.parse(atob(token.split(".")[1]));
-        setUser({ id: p.id, full_name: p.full_name || "Mentor", role: p.role });
+        setUser({ id: Number(p.id), full_name: p.full_name || "Mentor", role: p.role });
       } catch {}
     }
   }, []);
@@ -71,13 +73,12 @@ export default function MentorPage() {
       .then(res => setCourses(Array.isArray(res.data) ? res.data : (res.data?.data ?? [])))
       .catch(() => setCourses([]))
       .finally(() => setLoadingCourses(false));
+
     api.get("/student")
-      .then(res => {
-        const data = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-        setStudents(data);
-      })
+      .then(res => setStudents(Array.isArray(res.data) ? res.data : (res.data?.data ?? [])))
       .catch(() => setStudents([]))
       .finally(() => setLoadingStudents(false));
+
     api.get("/homeworks")
       .then(res => setHomeworks(Array.isArray(res.data) ? res.data : []))
       .catch(() => setHomeworks([]))
@@ -87,28 +88,110 @@ export default function MentorPage() {
   const initials = (n: string) => n?.split(" ").map((x: string) => x[0]).join("").slice(0, 2).toUpperCase() || "M";
   const logout = () => { localStorage.removeItem("access_token"); localStorage.removeItem("refresh_token"); window.location.href = "/login"; };
 
-  const mentorCourses = courses.filter(c => c.mentorProfile?.user?.id === user?.id);
-  const mentorCourseNames = new Set(mentorCourses.map(c => c.name));
-  const mentorStudents = students.filter(s => s.course && mentorCourseNames.has(s.course.name));
+  // 1. Mentor Courses Scope
+  const mentorCourses = React.useMemo(() => {
+    if (!user) return courses;
+    const uid = Number(user.id);
+    const uName = user.full_name?.trim().toLowerCase() || "";
 
-  const filteredStudents = mentorStudents.filter(s => {
-    const matchCourse = !selectedCourseFilter || s.course?.name === selectedCourseFilter;
-    const matchSearch = !studentSearch || s.full_name.toLowerCase().includes(studentSearch.toLowerCase()) || s.phone.includes(studentSearch);
-    return matchCourse && matchSearch;
-  });
-  const filteredQAStudents = mentorStudents.filter(s => (!selectedQACourse || s.course?.name === selectedQACourse) && (!qaSearch || s.full_name.toLowerCase().includes(qaSearch.toLowerCase())));
+    const matched = courses.filter(c => {
+      const pUserId = c.mentorProfile?.user?.id !== undefined ? Number(c.mentorProfile.user.id) : (c.mentorProfile?.usersId !== undefined ? Number(c.mentorProfile.usersId) : null);
+      const pUserName = c.mentorProfile?.user?.full_name ? c.mentorProfile.user.full_name.trim().toLowerCase() : "";
+
+      const idMatch = uid !== null && pUserId !== null && uid === pUserId;
+      const nameMatch = uName !== "" && pUserName !== "" && (uName === pUserName || uName.includes(pUserName) || pUserName.includes(uName));
+
+      return idMatch || nameMatch;
+    });
+
+    return matched;
+  }, [courses, user]);
+
+  // 2. Mentor Students Scope
+  const mentorStudents = React.useMemo(() => {
+    const mIds = new Set(mentorCourses.map(c => Number(c.id)));
+    const mNames = new Set(mentorCourses.map(c => c.name.trim().toLowerCase()));
+
+    return students.filter(s => {
+      if (!s.course && !s.courseId) return false;
+      const cId = s.courseId ? Number(s.courseId) : (s.course?.id ? Number(s.course.id) : null);
+      const cName = s.course?.name ? s.course.name.trim().toLowerCase() : "";
+
+      const idMatch = cId !== null && mIds.has(cId);
+      const nameMatch = cName !== "" && mNames.has(cName);
+
+      return idMatch || nameMatch;
+    });
+  }, [students, mentorCourses]);
+
+  // 3. Mentor Homeworks Scope
+  const mentorHomeworks = React.useMemo(() => {
+    const mIds = new Set(mentorCourses.map(c => Number(c.id)));
+    const mNames = new Set(mentorCourses.map(c => c.name.trim().toLowerCase()));
+
+    return homeworks.filter(hw => {
+      const hwCourseId = hw.lesson?.section?.course?.id ? Number(hw.lesson.section.course.id) : null;
+      const hwCourseName = hw.lesson?.section?.course?.name ? hw.lesson.section.course.name.trim().toLowerCase() : "";
+      if (hwCourseId === null && hwCourseName === "") return true;
+
+      const idMatch = hwCourseId !== null && mIds.has(hwCourseId);
+      const nameMatch = hwCourseName !== "" && mNames.has(hwCourseName);
+
+      return idMatch || nameMatch;
+    });
+  }, [homeworks, mentorCourses]);
+
+  // 4. Filters
+  const filteredStudents = React.useMemo(() => {
+    return mentorStudents.filter(s => {
+      const matchCourse = !selectedCourseFilter || s.course?.name === selectedCourseFilter;
+      const matchSearch = !studentSearch || s.full_name.toLowerCase().includes(studentSearch.toLowerCase()) || s.phone.includes(studentSearch);
+      return matchCourse && matchSearch;
+    });
+  }, [mentorStudents, selectedCourseFilter, studentSearch]);
+
+  const filteredQAStudents = React.useMemo(() => {
+    return mentorStudents.filter(s =>
+      (!selectedQACourse || s.course?.name === selectedQACourse) &&
+      (!qaSearch || s.full_name.toLowerCase().includes(qaSearch.toLowerCase()))
+    );
+  }, [mentorStudents, selectedQACourse, qaSearch]);
+
+  // Auto-select QA student when tab opens
+  useEffect(() => {
+    if (activeTab === "qa" && filteredQAStudents.length > 0 && !selectedQAStudent) {
+      const s = filteredQAStudents[0];
+      setSelectedQAStudent(s);
+      setQaMessages([
+        { id: 1, text: `Assalomu alaykum ustoz, ${s.course?.name || "kurs"} bo'yicha savolim bor edi.`, sender: "student", senderName: s.full_name, time: "10:30" },
+        { id: 2, text: "Vazifani tekshirib bera olasizmi?", sender: "student", senderName: s.full_name, time: "10:32" }
+      ]);
+    }
+  }, [activeTab, filteredQAStudents, selectedQAStudent]);
+
   const sendMessage = () => {
     if (!qaInput.trim() || !selectedQAStudent) return;
-    setQaMessages(prev => [...prev, { id: Date.now(), text: qaInput, sender: "mentor", senderName: user?.full_name || "Mentor", time: new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" }) }]);
+    setQaMessages(prev => [...prev, {
+      id: Date.now(),
+      text: qaInput,
+      sender: "mentor",
+      senderName: user?.full_name || "Mentor",
+      time: new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" })
+    }]);
     setQaInput("");
   };
+
   const selectQAStudent = (s: Student) => {
     setSelectedQAStudent(s);
-    setQaMessages([{ id: 1, text: "Assalomu alaykum, yaxshimisiz?", sender: "student", senderName: s.full_name, time: "10:30" }]);
+    setQaMessages([
+      { id: 1, text: `Assalomu alaykum ustoz, ${s.course?.name || "dars"} bo'yicha savolim bor edi.`, sender: "student", senderName: s.full_name, time: "10:30" },
+      { id: 2, text: "Topshiriqni qayta yukladim, ko'rib berolasizmi?", sender: "student", senderName: s.full_name, time: "10:32" }
+    ]);
   };
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#f4f7fa", fontFamily: "'Inter', sans-serif" }}>
+      {/* SIDEBAR */}
       <aside style={{ width: 240, minWidth: 240, background: SIDEBAR_BG, display: "flex", flexDirection: "column", minHeight: "100vh", flexShrink: 0 }}>
         <div style={{ height: 60, display: "flex", alignItems: "center", padding: "0 18px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
           <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px" }}>
@@ -153,6 +236,7 @@ export default function MentorPage() {
         </div>
       </aside>
 
+      {/* MAIN */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <header style={{ height: 60, background: "#fff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -188,8 +272,10 @@ export default function MentorPage() {
           </div>
         </header>
 
+        {/* BODY */}
         <main style={{ flex: 1, padding: 24, overflowY: "auto" }}>
 
+          {/* DASHBOARD */}
           {activeTab === "dashboard" && (
             <div>
               <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>Xush kelibsiz, {user?.full_name || "Mentor"}!</h1>
@@ -239,6 +325,7 @@ export default function MentorPage() {
             </div>
           )}
 
+          {/* O'QUVCHILARIM */}
           {activeTab === "students" && (
             <div>
               <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>O`quvchilarim</h1>
@@ -280,6 +367,7 @@ export default function MentorPage() {
             </div>
           )}
 
+          {/* MENING KURSLARIM */}
           {activeTab === "courses" && (
             <div>
               <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>Mening kurslarim</h1>
@@ -308,6 +396,7 @@ export default function MentorPage() {
             </div>
           )}
 
+          {/* SAVOL-JAVOBLAR */}
           {activeTab === "qa" && (
             <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -334,7 +423,7 @@ export default function MentorPage() {
                         <Avatar sx={{ width: 32, height: 32, bgcolor: "#3b82f6", fontSize: 11, fontWeight: 700 }}>{initials(s.full_name)}</Avatar>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{s.full_name}</div>
-                          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>Assalomu alaykum...</div>
+                          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>Assalomu alaykum ustoz...</div>
                         </div>
                         <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#3b82f6", display: "inline-block", flexShrink: 0 }} />
                       </div>
@@ -370,6 +459,7 @@ export default function MentorPage() {
             </div>
           )}
 
+          {/* UYGA VAZIFALAR */}
           {activeTab === "homeworks" && (
             <div>
               <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: "0 0 20px" }}>Uyga vazifalar</h1>
@@ -378,8 +468,8 @@ export default function MentorPage() {
                   <thead><tr style={{ background: "#f8fafc" }}>{["#","TAVSIF","DARS","BO`LIM","KURS","FAYL"].map(h => <th key={h} style={{ padding: "10px 16px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textAlign: "left", letterSpacing: "0.05em" }}>{h}</th>)}</tr></thead>
                   <tbody>
                     {loadingHW ? <tr><td colSpan={6} style={{ textAlign: "center", padding: 32 }}><CircularProgress size={28} style={{ color: ACCENT }} /></td></tr>
-                    : homeworks.length === 0 ? <tr><td colSpan={6} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>Uyga vazifalar mavjud emas</td></tr>
-                    : homeworks.map((hw: Homework, i: number) => (
+                    : mentorHomeworks.length === 0 ? <tr><td colSpan={6} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>Uyga vazifalar mavjud emas</td></tr>
+                    : mentorHomeworks.map((hw: Homework, i: number) => (
                       <tr key={hw.id} style={{ borderTop: "1px solid #f1f5f9" }}>
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#94a3b8" }}>{i + 1}</td>
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#0f172a", maxWidth: 280 }}>{hw.description}</td>
