@@ -652,79 +652,76 @@ export default function StudentCoursePlayer() {
                               Savol so'rash
                             </button>
                           </div>
-                          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Barcha savollar</div>
-                          {questions.length === 0 ? (
-                            <div style={{ color: "#94a3b8", fontSize: 14 }}>Hali savollar yo'q. Birinchi bo'lib savol bering!</div>
-                          ) : questions.map((q) => (
-                            <div key={q.id} style={{ padding: "16px 0", borderBottom: "1px solid #f1f5f9" }}>
-                              <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                                <Avatar sx={{ width: 40, height: 40, bgcolor: "#2563eb", fontSize: 14, fontWeight: 700 }}>{initials(q.author)}</Avatar>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: 800, color: "#991b1b", fontSize: 15 }}>{q.author}</div>
-                                  <div style={{ fontSize: 14, color: "#0f172a", marginTop: 4, fontWeight: 500 }}>{q.text}</div>
-                                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{q.createdAt}</div>
+                          {/* Telegram-style chat bubbles */}
+                          <div style={{
+                            display: "flex", flexDirection: "column", gap: 12,
+                            minHeight: 200,
+                            padding: "8px 0"
+                          }}>
+                            {questions.length === 0 ? (
+                              <div style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "40px 0" }}>Hali savollar yo'q. Birinchi bo'lib savol bering!</div>
+                            ) : questions.slice().reverse().map((q) => (
+                              <React.Fragment key={q.id}>
+                                {/* Student savoli — o'NGDA */}
+                                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-end", gap: 8 }}>
+                                  <div style={{ maxWidth: "72%" }}>
+                                    <div style={{
+                                      background: "#2563eb",
+                                      color: "#fff",
+                                      borderRadius: "18px 18px 4px 18px",
+                                      padding: "10px 14px",
+                                      fontSize: 14,
+                                      fontWeight: 500,
+                                      lineHeight: 1.5,
+                                      boxShadow: "0 2px 8px rgba(37,99,235,0.18)"
+                                    }}>
+                                      {q.text}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, textAlign: "right" }}>
+                                      {q.author} · {q.createdAt}
+                                    </div>
+                                  </div>
+                                  <Avatar sx={{ width: 32, height: 32, bgcolor: "#2563eb", fontSize: 12, fontWeight: 700, flexShrink: 0, mb: 0.5 }}>
+                                    {initials(q.author)}
+                                  </Avatar>
+                                </div>
 
-                                  {/* Mentor Answer */}
-                                  {q.answer ? (
-                                    <div style={{ display: "flex", gap: 12, marginTop: 14, background: "#f8f9fa", borderRadius: 12, padding: "14px 18px", border: "1px solid #f1f5f9" }}>
-                                      <Avatar sx={{ width: 36, height: 36, bgcolor: "#16a34a", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{initials(q.answerAuthor || "Mentor")}</Avatar>
-                                      <div style={{ flex: 1 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                          <span style={{ fontWeight: 800, color: "#16a34a", fontSize: 14 }}>{q.answerAuthor || "Mentor"}</span>
-                                          <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>(mentor)</span>
-                                        </div>
-                                        <div style={{ fontSize: 14, color: "#0f172a", marginTop: 4, fontWeight: 500 }}>{q.answer}</div>
-                                        <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{q.answerTime || q.createdAt}</div>
+                                {/* Mentor javobi — CHAPDA */}
+                                {q.answer ? (
+                                  <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "flex-end", gap: 8 }}>
+                                    <Avatar sx={{ width: 32, height: 32, bgcolor: "#16a34a", fontSize: 12, fontWeight: 700, flexShrink: 0, mb: 0.5 }}>
+                                      {initials(q.answerAuthor || "M")}
+                                    </Avatar>
+                                    <div style={{ maxWidth: "72%" }}>
+                                      <div style={{
+                                        background: "#f1f5f9",
+                                        color: "#0f172a",
+                                        borderRadius: "18px 18px 18px 4px",
+                                        padding: "10px 14px",
+                                        fontSize: 14,
+                                        fontWeight: 500,
+                                        lineHeight: 1.5,
+                                        boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+                                      }}>
+                                        {q.answer}
+                                      </div>
+                                      <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
+                                        {q.answerAuthor || "Mentor"} · {q.answerTime || q.createdAt}
                                       </div>
                                     </div>
-                                  ) : (
-                                    <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 8 }}>Hali javob berilmagan</div>
-                                  )}
-
-                                  {/* Follow-up Chat Replies (Nested under answer, matching chat style) */}
-                                  {Array.isArray(q.replies) && q.replies.length > 0 && (
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12, paddingLeft: 12, borderLeft: "2px solid #e2e8f0" }}>
-                                      {q.replies.map((rep, rIdx) => {
-                                        const isMentorRep = rep.senderRole === "TEACHER" || rep.senderRole === "MENTOR" || rep.author?.toLowerCase().includes("mentor");
-                                        return (
-                                          <div key={rep.id || rIdx} style={{ display: "flex", gap: 12, background: isMentorRep ? "#f8f9fa" : "#eff6ff", borderRadius: 12, padding: "12px 16px", border: `1px solid ${isMentorRep ? "#f1f5f9" : "#bfdbfe"}` }}>
-                                            <Avatar sx={{ width: 32, height: 32, bgcolor: isMentorRep ? "#16a34a" : "#2563eb", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                                              {initials(rep.author)}
-                                            </Avatar>
-                                            <div style={{ flex: 1 }}>
-                                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                                <span style={{ fontWeight: 800, color: isMentorRep ? "#16a34a" : "#991b1b", fontSize: 13 }}>{rep.author}</span>
-                                                {isMentorRep && <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>(mentor)</span>}
-                                              </div>
-                                              <div style={{ fontSize: 14, color: "#0f172a", marginTop: 4, fontWeight: 500 }}>{rep.text}</div>
-                                              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{rep.time ? new Date(rep.time).toLocaleString("uz-UZ") : ""}</div>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-
-                                  {/* Inline Chat Reply Input */}
-                                  <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                                    <input
-                                      value={replyInputs[q.id] || ""}
-                                      onChange={e => setReplyInputs(p => ({ ...p, [q.id]: e.target.value }))}
-                                      onKeyDown={e => { if (e.key === "Enter") handleSendReply(q.id); }}
-                                      placeholder="Javobning tagidan yozish (chat)..."
-                                      style={{ flex: 1, height: 36, border: "1px solid #cbd5e1", borderRadius: 8, padding: "0 12px", fontSize: 13, outline: "none" }}
-                                    />
-                                    <button
-                                      onClick={() => handleSendReply(q.id)}
-                                      style={{ height: 36, padding: "0 14px", background: BLUE, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
-                                    >
-                                      <SendOutlined style={{ width: 14, height: 14 }} /> Yuborish
-                                    </button>
                                   </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                                ) : (
+                                  <div style={{ display: "flex", justifyContent: "flex-start", paddingLeft: 40 }}>
+                                    <span style={{
+                                      fontSize: 12, color: "#94a3b8", fontStyle: "italic",
+                                      background: "#f8fafc", borderRadius: 10, padding: "6px 12px",
+                                      border: "1px solid #e2e8f0"
+                                    }}>Hali javob berilmagan...</span>
+                                  </div>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </div>
                         </>
                       )}
 
