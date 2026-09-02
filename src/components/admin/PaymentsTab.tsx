@@ -431,10 +431,7 @@ export default function PaymentsTab() {
                           )}
                         </div>
                       ) : (
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <SchoolOutlined style={{ width: 16, height: 16, color: "#94a3b8", flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, color: "#94a3b8" }}>—</span>
-                        </div>
+                        <span style={{ fontSize: 13, color: "#94a3b8" }}>—</span>
                       )}
                     </td>
 
