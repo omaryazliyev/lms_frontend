@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Avatar, Badge, CircularProgress } from "@mui/material";
 import GridViewOutlined from "@mui/icons-material/GridViewOutlined";
@@ -14,12 +15,11 @@ import StarOutlined from "@mui/icons-material/StarOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import SendOutlined from "@mui/icons-material/SendOutlined";
-import ChatBubbleOutlineOutlined from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import DoneAllOutlined from "@mui/icons-material/DoneAllOutlined";
 import api from "../../api/axios";
 
 const SIDEBAR_BG = "rgb(13,16,23)";
-const ACCENT = "#e53935";
+const ACCENT = "#3b82f6";
 
 interface Course {
   id: number; name: string; prise: number; level: string;
@@ -71,10 +71,10 @@ export default function MentorPage() {
   const [qaSearch, setQaSearch] = useState("");
   const [selectedQACourse, setSelectedQACourse] = useState("");
 
-  // Notifications State
+  // Notifications state
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
-  // WebSocket Ref & State
+  // WebSocket Ref & Connected State
   const wsRef = useRef<WebSocket | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
 
@@ -219,7 +219,6 @@ export default function MentorPage() {
     const sId = msgData.studentId;
     const timeStr = new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
 
-    // Append to live chat
     setQaMessages(prev => ({
       ...prev,
       [sId]: [
@@ -228,7 +227,6 @@ export default function MentorPage() {
       ]
     }));
 
-    // Append to Notifications list & update badge
     setNotifications(prev => [
       {
         id: Date.now(),
@@ -243,7 +241,6 @@ export default function MentorPage() {
     ]);
   };
 
-  // Auto-select QA student when tab opens
   useEffect(() => {
     if (activeTab === "qa" && filteredQAStudents.length > 0 && !selectedQAStudent) {
       const s = filteredQAStudents[0];
@@ -275,7 +272,6 @@ export default function MentorPage() {
       [sId]: [...(prev[sId] || []), newMsg]
     }));
 
-    // Send via WebSocket if open
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: "chat_message",
@@ -308,33 +304,38 @@ export default function MentorPage() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#f4f7fa", fontFamily: "'Inter', sans-serif" }}>
-      {/* SIDEBAR */}
-      <aside style={{ width: 240, minWidth: 240, background: SIDEBAR_BG, display: "flex", flexDirection: "column", minHeight: "100vh", flexShrink: 0 }}>
-        <div style={{ height: 60, display: "flex", alignItems: "center", padding: "0 18px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-          <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px" }}>
-            <span style={{ color: ACCENT }}>iT</span><span style={{ color: "#fff" }}>live</span>
-          </span>
-          <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: 2, background: ACCENT, marginBottom: 3, marginLeft: 2 }} />
+      {/* SIDEBAR - MATCHING PROJECT STANDARDS */}
+      <aside style={{ width: 280, minWidth: 280, background: SIDEBAR_BG, display: "flex", flexDirection: "column", minHeight: "100vh", overflow: "hidden", flexShrink: 0 }}>
+        <div style={{ height: 64, display: "flex", alignItems: "center", padding: "0 20px" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 2 }}>
+            <span style={{ fontSize: 22, fontWeight: 800, lineHeight: 1, letterSpacing: "-0.5px" }}>
+              <span style={{ color: "#3b82f6" }}>iT</span>
+              <span style={{ color: "#fff" }}>live</span>
+            </span>
+            <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: 2, background: "#3b82f6", marginBottom: 3 }} />
+          </div>
         </div>
-        <div style={{ padding: "12px 14px 4px" }}>
-          <div style={{ height: 28, borderRadius: 6, background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", color: "#64748b" }}>BOSHQARUV PANELI</div>
+        <div style={{ padding: "0 14px 8px" }}>
+          <div style={{ height: 30, borderRadius: 8, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", color: "#94a3b8" }}>
+            BOSHQARUV PANELI
+          </div>
         </div>
-        <nav style={{ flex: 1, padding: "8px 10px 0", display: "flex", flexDirection: "column", gap: 2 }}>
-          <button onClick={() => setActiveTab("dashboard")} style={{ width: "100%", height: 38, padding: "0 10px", display: "flex", alignItems: "center", gap: 9, borderRadius: 7, border: "none", background: activeTab === "dashboard" ? "rgba(229,57,53,0.15)" : "transparent", color: activeTab === "dashboard" ? ACCENT : "#94a3b8", fontSize: 13, fontWeight: activeTab === "dashboard" ? 700 : 500, cursor: "pointer", textAlign: "left" }}>
+        <nav style={{ flex: 1, padding: "8px 14px 0", display: "flex", flexDirection: "column", gap: 4 }}>
+          <button onClick={() => setActiveTab("dashboard")} style={{ width: "100%", height: 40, padding: "0 12px", display: "flex", alignItems: "center", gap: 10, borderRadius: 8, border: "none", background: activeTab === "dashboard" ? "rgba(59,130,246,0.18)" : "transparent", color: activeTab === "dashboard" ? "#60a5fa" : "#94a3b8", fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: activeTab === "dashboard" ? 700 : 500, cursor: "pointer", textAlign: "left", transition: "all 0.18s" }}>
             <GridViewOutlined style={{ width: 17, height: 17 }} /> Asosiy
           </button>
           <div>
-            <button onClick={() => setFoydalanuvchilarOpen(p => !p)} style={{ width: "100%", height: 38, padding: "0 10px", display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: 7, border: "none", background: "transparent", color: "#94a3b8", fontSize: 13, cursor: "pointer" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 9 }}><PeopleOutlined style={{ width: 17, height: 17 }} /> Foydalanuvchilar</span>
+            <button onClick={() => setFoydalanuvchilarOpen(p => !p)} style={{ width: "100%", height: 40, padding: "0 12px", display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: 8, border: "none", background: "transparent", color: "#94a3b8", fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500, cursor: "pointer" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}><PeopleOutlined style={{ width: 17, height: 17 }} /> Foydalanuvchilar</span>
               {foydalanuvchilarOpen ? <KeyboardArrowDown style={{ width: 15, height: 15 }} /> : <KeyboardArrowRight style={{ width: 15, height: 15 }} />}
             </button>
             {foydalanuvchilarOpen && (
-              <button onClick={() => setActiveTab("students")} style={{ width: "100%", height: 34, padding: "0 10px 0 36px", display: "flex", alignItems: "center", borderRadius: 7, border: "none", background: activeTab === "students" ? "rgba(229,57,53,0.12)" : "transparent", color: activeTab === "students" ? ACCENT : "#64748b", fontSize: 12.5, fontWeight: activeTab === "students" ? 700 : 400, cursor: "pointer", textAlign: "left" }}>O`quvchilarim</button>
+              <button onClick={() => setActiveTab("students")} style={{ width: "100%", height: 36, padding: "0 12px 0 38px", display: "flex", alignItems: "center", borderRadius: 8, border: "none", background: activeTab === "students" ? "rgba(59,130,246,0.18)" : "transparent", color: activeTab === "students" ? "#60a5fa" : "#94a3b8", fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: activeTab === "students" ? 700 : 500, cursor: "pointer", textAlign: "left", transition: "all 0.18s" }}>O'quvchilarim</button>
             )}
           </div>
           <div>
-            <button onClick={() => setMateriallarOpen(p => !p)} style={{ width: "100%", height: 38, padding: "0 10px", display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: 7, border: "none", background: "transparent", color: "#94a3b8", fontSize: 13, cursor: "pointer" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 9 }}><MenuBookOutlined style={{ width: 17, height: 17 }} /> Materiallar</span>
+            <button onClick={() => setMateriallarOpen(p => !p)} style={{ width: "100%", height: 40, padding: "0 12px", display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: 8, border: "none", background: "transparent", color: "#94a3b8", fontFamily: "Inter, sans-serif", fontSize: 14, fontWeight: 500, cursor: "pointer" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}><MenuBookOutlined style={{ width: 17, height: 17 }} /> Materiallar</span>
               {materiallarOpen ? <KeyboardArrowDown style={{ width: 15, height: 15 }} /> : <KeyboardArrowRight style={{ width: 15, height: 15 }} />}
             </button>
             {materiallarOpen && [
@@ -342,12 +343,12 @@ export default function MentorPage() {
               { key: "qa", label: "Savol-javoblar" },
               { key: "homeworks", label: "Uyga vazifalar" },
             ].map(item => (
-              <button key={item.key} onClick={() => setActiveTab(item.key)} style={{ width: "100%", height: 34, padding: "0 10px 0 36px", display: "flex", alignItems: "center", borderRadius: 7, border: "none", background: activeTab === item.key ? "rgba(229,57,53,0.12)" : "transparent", color: activeTab === item.key ? ACCENT : "#64748b", fontSize: 12.5, fontWeight: activeTab === item.key ? 700 : 400, cursor: "pointer", textAlign: "left" }}>{item.label}</button>
+              <button key={item.key} onClick={() => setActiveTab(item.key)} style={{ width: "100%", height: 36, padding: "0 12px 0 38px", display: "flex", alignItems: "center", borderRadius: 8, border: "none", background: activeTab === item.key ? "rgba(59,130,246,0.18)" : "transparent", color: activeTab === item.key ? "#60a5fa" : "#94a3b8", fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: activeTab === item.key ? 700 : 500, cursor: "pointer", textAlign: "left", transition: "all 0.18s" }}>{item.label}</button>
             ))}
           </div>
         </nav>
-        <div style={{ padding: "12px 10px 20px" }}>
-          <button onClick={logout} style={{ width: "100%", height: 38, padding: "0 10px", display: "flex", alignItems: "center", gap: 9, borderRadius: 7, border: "none", background: "transparent", color: "#ef4444", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+        <div style={{ padding: "16px 14px 24px" }}>
+          <button onClick={logout} style={{ width: "100%", height: 40, padding: "0 12px", display: "flex", alignItems: "center", gap: 10, borderRadius: 8, border: "none", background: "transparent", color: "#ef4444", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
             <ExitToAppOutlined style={{ width: 17, height: 17 }} /> Chiqish
           </button>
         </div>
@@ -355,7 +356,7 @@ export default function MentorPage() {
 
       {/* MAIN */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-        <header style={{ height: 60, background: "#fff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", flexShrink: 0 }}>
+        <header style={{ height: 64, background: "#fff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <CheckCircleOutlined style={{ width: 18, height: 18, color: ACCENT }} />
             <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Mentor</span>
@@ -364,9 +365,9 @@ export default function MentorPage() {
 
             {/* NOTIFICATION BELL WITH BADGE & DROPDOWN */}
             <div style={{ position: "relative" }}>
-              <button onClick={() => setNotificationsOpen(p => !p)} style={{ width: 38, height: 38, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
+              <button onClick={() => setNotificationsOpen(p => !p)} style={{ width: 40, height: 40, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
                 <Badge badgeContent={unreadCount} color="error" sx={{ "& .MuiBadge-badge": { fontSize: 10, height: 16, minWidth: 16, fontWeight: 700 } }}>
-                  <NotificationsNoneOutlined style={{ width: 18, height: 18, color: unreadCount > 0 ? ACCENT : "#64748b" }} />
+                  <NotificationsNoneOutlined style={{ width: 20, height: 20, color: unreadCount > 0 ? ACCENT : "#64748b" }} />
                 </Badge>
               </button>
 
@@ -377,10 +378,10 @@ export default function MentorPage() {
                     <div style={{ padding: "0 16px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>Bildirishnomalar</span>
-                        {unreadCount > 0 && <span style={{ background: "#fff1f2", color: ACCENT, fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 10 }}>{unreadCount} yangi</span>}
+                        {unreadCount > 0 && <span style={{ background: "#eff6ff", color: ACCENT, fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 10 }}>{unreadCount} yangi</span>}
                       </div>
                       {unreadCount > 0 && (
-                        <button onClick={markAllAsRead} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 3 }}>
+                        <button onClick={markAllAsRead} style={{ background: "none", border: "none", color: ACCENT, fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 3 }}>
                           <DoneAllOutlined style={{ width: 14, height: 14 }} /> Barchasi o'qildi
                         </button>
                       )}
@@ -392,8 +393,8 @@ export default function MentorPage() {
                       ) : (
                         notifications.map(n => (
                           <div key={n.id} onClick={() => handleNotificationClick(n)}
-                            style={{ padding: "10px 16px", display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", background: n.isRead ? "transparent" : "#fff1f2", borderBottom: "1px solid #f1f5f9", transition: "background 0.2s" }}>
-                            <Avatar sx={{ width: 32, height: 32, bgcolor: "#3b82f6", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials(n.studentName)}</Avatar>
+                            style={{ padding: "10px 16px", display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", background: n.isRead ? "transparent" : "#eff6ff", borderBottom: "1px solid #f1f5f9", transition: "background 0.2s" }}>
+                            <Avatar sx={{ width: 32, height: 32, bgcolor: ACCENT, fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials(n.studentName)}</Avatar>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                 <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{n.studentName}</span>
@@ -413,7 +414,7 @@ export default function MentorPage() {
 
             {/* PROFILE MENU */}
             <div style={{ position: "relative" }}>
-              <button onClick={() => setProfileOpen(p => !p)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 10px 4px 5px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 9, cursor: "pointer" }}>
+              <button onClick={() => setProfileOpen(p => !p)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px 5px 5px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, cursor: "pointer" }}>
                 <Avatar sx={{ width: 28, height: 28, bgcolor: ACCENT, fontSize: 11, fontWeight: 700 }}>{initials(user?.full_name)}</Avatar>
                 <div style={{ textAlign: "left" }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{user?.full_name || "Mentor"}</div>
@@ -442,12 +443,12 @@ export default function MentorPage() {
           {activeTab === "dashboard" && (
             <div>
               <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>Xush kelibsiz, {user?.full_name || "Mentor"}!</h1>
-              <p style={{ fontSize: 13, color: "#64748b", margin: "0 0 24px" }}>Bu yerda o`zingizga tegishli kurslar va o`quvchilarni boshqarishingiz mumkin.</p>
+              <p style={{ fontSize: 13, color: "#64748b", margin: "0 0 24px" }}>Bu yerda o'zingizga tegishli kurslar va o'quvchilarni boshqarishingiz mumkin.</p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
                 {[
                   { label: "Jami Kurslar", value: mentorCourses.length, icon: <MenuBookOutlined style={{ width: 22, height: 22, color: "#3b82f6" }} />, bg: "#eff6ff", border: "#bfdbfe" },
                   { label: "Nashr qilingan", value: mentorCourses.filter((c: Course) => c.isActive).length, icon: <CheckCircleOutlined style={{ width: 22, height: 22, color: "#10b981" }} />, bg: "#f0fdf4", border: "#bbf7d0" },
-                  { label: "Sotib olganlar", value: mentorStudents.length, icon: <SchoolOutlined style={{ width: 22, height: 22, color: ACCENT }} />, bg: "#fff1f2", border: "#fecdd3" },
+                  { label: "Sotib olganlar", value: mentorStudents.length, icon: <SchoolOutlined style={{ width: 22, height: 22, color: ACCENT }} />, bg: "#eff6ff", border: "#bfdbfe" },
                   { label: "Jami baholar", value: 0, icon: <StarOutlined style={{ width: 22, height: 22, color: "#f59e0b" }} />, bg: "#fffbeb", border: "#fde68a" },
                 ].map((s, i) => (
                   <div key={i} style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "20px", display: "flex", alignItems: "center", gap: 14 }}>
@@ -475,10 +476,10 @@ export default function MentorPage() {
                           </div>
                         </td>
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{c.category?.name || "—"}</td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{Number(c.prise).toLocaleString("uz-UZ")} so`m</td>
-                        <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, fontWeight: 600, color: "#ef4444", background: "#fff1f2", padding: "3px 10px", borderRadius: 20 }}>{c.level}</span></td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{Number(c.prise).toLocaleString("uz-UZ")} so'm</td>
+                        <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, fontWeight: 600, color: ACCENT, background: "#eff6ff", padding: "3px 10px", borderRadius: 20 }}>{c.level}</span></td>
                         <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, fontWeight: 600, color: c.isActive ? "#16a34a" : "#64748b", background: c.isActive ? "#f0fdf4" : "#f8fafc", padding: "3px 10px", borderRadius: 20, border: `1px solid ${c.isActive ? "#bbf7d0" : "#e2e8f0"}` }}>{c.isActive ? "Nashr qilingan" : "Nofaol"}</span></td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600 }}>{mentorStudents.filter((s: Student) => s.course?.name === c.name).length}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{mentorStudents.filter((s: Student) => s.course?.name === c.name).length}</td>
                         <td style={{ padding: "12px 16px", fontSize: 13 }}><span style={{ color: "#f59e0b" }}>★</span> 0</td>
                       </tr>
                     ))}
@@ -491,8 +492,8 @@ export default function MentorPage() {
           {/* O'QUVCHILARIM */}
           {activeTab === "students" && (
             <div>
-              <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>O`quvchilarim</h1>
-              <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 20px" }}>Mening kurslarim &bull; O`quvchilar</p>
+              <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>O'quvchilarim</h1>
+              <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 20px" }}>Mening kurslarim &bull; O'quvchilar</p>
               <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
                 <select value={selectedCourseFilter} onChange={e => setSelectedCourseFilter(e.target.value)} style={{ height: 38, padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, background: "#fff", outline: "none", minWidth: 180 }}>
                   <option value="">Barcha kurslar</option>
@@ -505,16 +506,16 @@ export default function MentorPage() {
               </div>
               <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead><tr style={{ background: "#f8fafc" }}>{["ID","O`QUVCHI","TELEFON RAQAM","NARXI","SOTIB OLGAN SANA"].map(h => <th key={h} style={{ padding: "10px 16px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textAlign: "left", letterSpacing: "0.05em" }}>{h}</th>)}</tr></thead>
+                  <thead><tr style={{ background: "#f8fafc" }}>{["ID","O'QUVCHI","TELEFON RAQAM","NARXI","SOTIB OLGAN SANA"].map(h => <th key={h} style={{ padding: "10px 16px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textAlign: "left", letterSpacing: "0.05em" }}>{h}</th>)}</tr></thead>
                   <tbody>
                     {loadingStudents ? <tr><td colSpan={5} style={{ textAlign: "center", padding: 32 }}><CircularProgress size={28} style={{ color: ACCENT }} /></td></tr>
-                    : filteredStudents.length === 0 ? <tr><td colSpan={5} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>O`quvchilar topilmadi</td></tr>
+                    : filteredStudents.length === 0 ? <tr><td colSpan={5} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>O'quvchilar topilmadi</td></tr>
                     : filteredStudents.map((s: Student) => (
                       <tr key={s.id} style={{ borderTop: "1px solid #f1f5f9" }}>
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#94a3b8", fontWeight: 600 }}>{s.id}</td>
                         <td style={{ padding: "12px 16px" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <Avatar sx={{ width: 30, height: 30, bgcolor: "#3b82f6", fontSize: 11, fontWeight: 700 }}>{initials(s.full_name)}</Avatar>
+                            <Avatar sx={{ width: 30, height: 30, bgcolor: ACCENT, fontSize: 11, fontWeight: 700 }}>{initials(s.full_name)}</Avatar>
                             <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{s.full_name}</span>
                           </div>
                         </td>
@@ -525,7 +526,7 @@ export default function MentorPage() {
                     ))}
                   </tbody>
                 </table>
-                <div style={{ padding: "12px 16px", borderTop: "1px solid #f1f5f9", fontSize: 12, color: "#94a3b8" }}>Jami {filteredStudents.length} ta o`quvchi</div>
+                <div style={{ padding: "12px 16px", borderTop: "1px solid #f1f5f9", fontSize: 12, color: "#94a3b8" }}>Jami {filteredStudents.length} ta o'quvchi</div>
               </div>
             </div>
           )}
@@ -544,10 +545,10 @@ export default function MentorPage() {
                     : mentorCourses.map((c: Course) => (
                       <tr key={c.id} style={{ borderTop: "1px solid #f1f5f9" }}>
                         <td style={{ padding: "12px 16px" }}><div style={{ width: 44, height: 44, borderRadius: 8, background: "#f1f5f9", overflow: "hidden" }}>{c.banner ? <img src={`/api/v1/uploads/images/${c.banner}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📚</div>}</div></td>
-                        <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 13, fontWeight: 700, color: "#3b82f6", cursor: "pointer" }}>{c.name}</span></td>
+                        <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 13, fontWeight: 700, color: ACCENT, cursor: "pointer" }}>{c.name}</span></td>
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{c.level}</td>
                         <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{Number(c.prise).toLocaleString("uz-UZ")}</td>
-                        <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, color: "#3b82f6", fontWeight: 600 }}>{c.category?.name || "—"}</span></td>
+                        <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, color: ACCENT, fontWeight: 600 }}>{c.category?.name || "—"}</span></td>
                         <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, fontWeight: 600, color: c.isActive ? "#16a34a" : "#64748b", background: c.isActive ? "#f0fdf4" : "#f8fafc", padding: "3px 10px", borderRadius: 20, border: `1px solid ${c.isActive ? "#bbf7d0" : "#e2e8f0"}` }}>{c.isActive ? "Faol" : "Nofaol"}</span></td>
                         <td style={{ padding: "12px 16px" }}><button style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}><VisibilityOutlined style={{ width: 18, height: 18 }} /></button></td>
                       </tr>
@@ -559,7 +560,7 @@ export default function MentorPage() {
             </div>
           )}
 
-          {/* SAVOL-JAVOBLAR (WEBSOCKET LIVE CHAT) */}
+          {/* SAVOL-JAVOBLAR */}
           {activeTab === "qa" && (
             <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -583,37 +584,41 @@ export default function MentorPage() {
                     </div>
                   </div>
                   <div style={{ flex: 1, overflowY: "auto" }}>
-                    {filteredQAStudents.length === 0 ? <div style={{ padding: 20, textAlign: "center", color: "#94a3b8", fontSize: 12 }}>O`quvchilar yo`q</div>
+                    {filteredQAStudents.length === 0 ? <div style={{ padding: 20, textAlign: "center", color: "#94a3b8", fontSize: 12 }}>O'quvchilar yo'q</div>
                     : filteredQAStudents.map((s: Student) => (
-                      <div key={s.id} onClick={() => selectQAStudent(s)} style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 9, cursor: "pointer", background: selectedQAStudent?.id === s.id ? "#fff1f2" : "transparent", borderBottom: "1px solid #f1f5f9", borderLeft: selectedQAStudent?.id === s.id ? `3px solid ${ACCENT}` : "3px solid transparent" }}>
-                        <Avatar sx={{ width: 32, height: 32, bgcolor: "#3b82f6", fontSize: 11, fontWeight: 700 }}>{initials(s.full_name)}</Avatar>
+                      <div key={s.id} onClick={() => selectQAStudent(s)} style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 9, cursor: "pointer", background: selectedQAStudent?.id === s.id ? "#eff6ff" : "transparent", borderBottom: "1px solid #f1f5f9", borderLeft: selectedQAStudent?.id === s.id ? `3px solid ${ACCENT}` : "3px solid transparent" }}>
+                        <Avatar sx={{ width: 32, height: 32, bgcolor: ACCENT, fontSize: 11, fontWeight: 700 }}>{initials(s.full_name)}</Avatar>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{s.full_name}</div>
-                          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>Assalomu alaykum ustoz...</div>
+                          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>Savol-javob...</div>
                         </div>
-                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#3b82f6", display: "inline-block", flexShrink: 0 }} />
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: ACCENT, display: "inline-block", flexShrink: 0 }} />
                       </div>
                     ))}
                   </div>
                 </div>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                  {!selectedQAStudent ? <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: 14 }}>Savolni tanlang</div> : (
+                  {!selectedQAStudent ? <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: 14 }}>Savol beruvchi o'quvchini tanlang</div> : (
                     <>
                       <div style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", fontWeight: 700, fontSize: 14, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span>{selectedQAStudent.full_name}</span>
-                        <span style={{ fontSize: 11, color: "#3b82f6", background: "#eff6ff", padding: "2px 8px", borderRadius: 6 }}>{selectedQAStudent.course?.name || "Kurs"}</span>
+                        <span style={{ fontSize: 11, color: ACCENT, background: "#eff6ff", padding: "2px 8px", borderRadius: 6 }}>{selectedQAStudent.course?.name || "Kurs"}</span>
                       </div>
                       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                        {activeMessages.map((m: QAMessage) => (
-                          <div key={m.id} style={{ display: "flex", justifyContent: m.sender === "mentor" ? "flex-end" : "flex-start", gap: 8 }}>
-                            {m.sender === "student" && <Avatar sx={{ width: 26, height: 26, bgcolor: "#3b82f6", fontSize: 10 }}>{initials(m.senderName)}</Avatar>}
-                            <div>
-                              <div style={{ maxWidth: 320, padding: "8px 12px", borderRadius: m.sender === "mentor" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: m.sender === "mentor" ? ACCENT : "#f1f5f9", color: m.sender === "mentor" ? "#fff" : "#0f172a", fontSize: 13 }}>{m.text}</div>
-                              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, textAlign: m.sender === "mentor" ? "right" : "left" }}>{m.time}</div>
+                        {activeMessages.length === 0 ? (
+                          <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 13, marginTop: 40 }}>Hali xabarlar mavjud emas</div>
+                        ) : (
+                          activeMessages.map((m: QAMessage) => (
+                            <div key={m.id} style={{ display: "flex", justifyContent: m.sender === "mentor" ? "flex-end" : "flex-start", gap: 8 }}>
+                              {m.sender === "student" && <Avatar sx={{ width: 26, height: 26, bgcolor: ACCENT, fontSize: 10 }}>{initials(m.senderName)}</Avatar>}
+                              <div>
+                                <div style={{ maxWidth: 320, padding: "8px 12px", borderRadius: m.sender === "mentor" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: m.sender === "mentor" ? ACCENT : "#f1f5f9", color: m.sender === "mentor" ? "#fff" : "#0f172a", fontSize: 13 }}>{m.text}</div>
+                                <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, textAlign: m.sender === "mentor" ? "right" : "left" }}>{m.time}</div>
+                              </div>
+                              {m.sender === "mentor" && <Avatar sx={{ width: 26, height: 26, bgcolor: "#0f172a", fontSize: 10 }}>{initials(user?.full_name)}</Avatar>}
                             </div>
-                            {m.sender === "mentor" && <Avatar sx={{ width: 26, height: 26, bgcolor: ACCENT, fontSize: 10 }}>{initials(user?.full_name)}</Avatar>}
-                          </div>
-                        ))}
+                          ))
+                        )}
                       </div>
                       <div style={{ padding: "10px 14px", borderTop: "1px solid #e2e8f0", display: "flex", gap: 8 }}>
                         <input value={qaInput} onChange={e => setQaInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder="Xabar yozing (WebSocket)..." style={{ flex: 1, height: 36, padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, outline: "none" }} />
@@ -634,7 +639,7 @@ export default function MentorPage() {
               <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: "0 0 20px" }}>Uyga vazifalar</h1>
               <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead><tr style={{ background: "#f8fafc" }}>{["#","TAVSIF","DARS","BO`LIM","KURS","FAYL"].map(h => <th key={h} style={{ padding: "10px 16px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textAlign: "left", letterSpacing: "0.05em" }}>{h}</th>)}</tr></thead>
+                  <thead><tr style={{ background: "#f8fafc" }}>{["#","TAVSIF","DARS","BO'LIM","KURS","FAYL"].map(h => <th key={h} style={{ padding: "10px 16px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textAlign: "left", letterSpacing: "0.05em" }}>{h}</th>)}</tr></thead>
                   <tbody>
                     {loadingHW ? <tr><td colSpan={6} style={{ textAlign: "center", padding: 32 }}><CircularProgress size={28} style={{ color: ACCENT }} /></td></tr>
                     : mentorHomeworks.length === 0 ? <tr><td colSpan={6} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>Uyga vazifalar mavjud emas</td></tr>
@@ -644,8 +649,8 @@ export default function MentorPage() {
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#0f172a", maxWidth: 280 }}>{hw.description}</td>
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{hw.lesson?.name || "—"}</td>
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{hw.lesson?.section?.name || "—"}</td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, color: "#3b82f6", fontWeight: 600 }}>{hw.lesson?.section?.course?.name || "—"}</td>
-                        <td style={{ padding: "12px 16px" }}>{hw.file ? <a href={`/api/v1/uploads/files/${hw.file}`} target="_blank" style={{ fontSize: 12, color: "#3b82f6", fontWeight: 600, textDecoration: "none" }}>📎 Yuklab olish</a> : <span style={{ fontSize: 12, color: "#94a3b8" }}>—</span>}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, color: ACCENT, fontWeight: 600 }}>{hw.lesson?.section?.course?.name || "—"}</td>
+                        <td style={{ padding: "12px 16px" }}>{hw.file ? <a href={`/api/v1/uploads/files/${hw.file}`} target="_blank" style={{ fontSize: 12, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>📎 Yuklab olish</a> : <span style={{ fontSize: 12, color: "#94a3b8" }}>—</span>}</td>
                       </tr>
                     ))}
                   </tbody>
