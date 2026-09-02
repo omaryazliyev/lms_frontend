@@ -41,8 +41,8 @@ interface Student {
   createdAt?: string;
   courseId?: number;
   course_id?: number;
-  course?: { id?: number; prise: number; name: string };
-  courses?: { id?: number; prise: number; name: string }[];
+  course?: { id?: number; prise?: number; name: string };
+  courses?: { id?: number; prise?: number; name: string }[];
 }
 
 interface Homework {
