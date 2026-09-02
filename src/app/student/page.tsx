@@ -51,16 +51,7 @@ export default function StudentDashboard() {
   const [likedCourses, setLikedCourses] = useState<Set<number>>(new Set());
 
   // Notifications state
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 1,
-      senderName: "Ali Valiyev (Mentor)",
-      courseName: "Web Dizayn",
-      text: "Savolingizga javob berildi: 'Darsdagi vazifani tekshirib ko'ring'",
-      time: "11:15",
-      isRead: false
-    }
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");

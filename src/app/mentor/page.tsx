@@ -72,17 +72,7 @@ export default function MentorPage() {
   const [selectedQACourse, setSelectedQACourse] = useState("");
 
   // Notifications State
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 1,
-      studentId: 1,
-      studentName: "Qodirjon Alimov",
-      courseName: "Frontend",
-      text: "Assalomu alaykum ustoz, dars bo'yicha savolim bor edi.",
-      time: "10:30",
-      isRead: false,
-    }
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   // WebSocket Ref & State
   const wsRef = useRef<WebSocket | null>(null);
@@ -258,35 +248,13 @@ export default function MentorPage() {
     if (activeTab === "qa" && filteredQAStudents.length > 0 && !selectedQAStudent) {
       const s = filteredQAStudents[0];
       setSelectedQAStudent(s);
-      setQaMessages(prev => {
-        if (!prev[s.id]) {
-          return {
-            ...prev,
-            [s.id]: [
-              { id: 1, text: `Assalomu alaykum ustoz, ${s.course?.name || "kurs"} bo'yicha savolim bor edi.`, sender: "student", senderName: s.full_name, time: "10:30" },
-              { id: 2, text: "Vazifani tekshirib bera olasizmi?", sender: "student", senderName: s.full_name, time: "10:32" }
-            ]
-          };
-        }
-        return prev;
-      });
+      setQaMessages(prev => { if (!prev[s.id]) { return { ...prev, [s.id]: [] }; } return prev; });
     }
   }, [activeTab, filteredQAStudents, selectedQAStudent]);
 
   const selectQAStudent = (s: Student) => {
     setSelectedQAStudent(s);
-    setQaMessages(prev => {
-      if (!prev[s.id]) {
-        return {
-          ...prev,
-          [s.id]: [
-            { id: 1, text: `Assalomu alaykum ustoz, ${s.course?.name || "dars"} bo'yicha savolim bor edi.`, sender: "student", senderName: s.full_name, time: "10:30" },
-            { id: 2, text: "Topshiriqni qayta yukladim, ko'rib berolasizmi?", sender: "student", senderName: s.full_name, time: "10:32" }
-          ]
-        };
-      }
-      return prev;
-    });
+    setQaMessages(prev => { if (!prev[s.id]) { return { ...prev, [s.id]: [] }; } return prev; });
   };
 
   const sendMessage = () => {

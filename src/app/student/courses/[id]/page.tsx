@@ -90,16 +90,7 @@ export default function StudentCoursePlayer() {
   const [examSubmitted, setExamSubmitted] = useState(false);
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 1,
-      senderName: "Ali Valiyev (Mentor)",
-      courseName: "Web Dizayn",
-      text: "Savolingizga javob berildi: 'Darsdagi topshiriq to'g'ri bajarilgan'",
-      time: "11:39",
-      isRead: false
-    }
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const wsRef = useRef<WebSocket | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
