@@ -114,6 +114,16 @@ export default function PaymentsTab() {
     }
   };
 
+  const handleRejectPaymentRequest = (reqId: number) => {
+    try {
+      const raw = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
+      const updated = raw.filter((r: any) => r.id !== reqId);
+      localStorage.setItem("lms_payment_requests", JSON.stringify(updated));
+      window.dispatchEvent(new Event("storage"));
+      setPaymentRequests(prev => prev.filter(r => r.id !== reqId));
+    } catch {}
+  };
+
   const handleTogglePaid = async (student: Student) => {
     setTogglingId(student.id);
     try {
@@ -206,41 +216,6 @@ export default function PaymentsTab() {
         </div>
       </div>
 
-      {/* PENDING PAYMENT REQUESTS FOR NEW COURSES */}
-      {paymentRequests.length > 0 && (
-        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 14, padding: 18, marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 18 }}>💳</span>
-              <span style={{ fontSize: 15, fontWeight: 800, color: "#1e3a8a" }}>Yangi Kurs To'lov So'rovlari ({paymentRequests.length})</span>
-            </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#3b82f6", background: "#dbeafe", padding: "3px 10px", borderRadius: 20 }}>Kutilmoqda</span>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {paymentRequests.map((req) => (
-              <div key={req.id} style={{ background: "#fff", borderRadius: 10, border: "1px solid #cbd5e1", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{req.studentName} ({req.studentPhone})</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 3 }}>
-                    Kurs: <strong style={{ color: "#3b82f6" }}>{req.courseName}</strong> • Narxi: <strong>{Number(req.coursePrice).toLocaleString("uz-UZ")} UZS</strong>
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={() => handleApprovePaymentRequest(req)}
-                    style={{ background: "#22c55e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 2px 6px rgba(34,197,94,0.25)" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#16a34a"}
-                    onMouseLeave={e => e.currentTarget.style.background = "#22c55e"}
-                  >
-                    <CheckCircleOutlined style={{ width: 15, height: 15 }} /> Tasdiqlash (Kursni berish)
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Toolbar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 12 }}>
@@ -301,7 +276,82 @@ export default function PaymentsTab() {
                 </tr>
               </thead>
               <tbody>
-                {paginated.length === 0 ? (
+                {paymentRequests.map((req) => (
+                  <tr key={`req-${req.id}`} style={{ borderBottom: "1px solid #fed7aa", background: "#fff7ed" }}>
+                    <td style={{ padding: "12px 16px", fontSize: 13, color: "#c2410c", fontWeight: 700 }}>
+                      {req.studentId || "NEW"}
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <Avatar sx={{ width: 32, height: 32, fontSize: 12, fontWeight: 700, bgcolor: "#f97316" }}>
+                          {initials(req.studentName)}
+                        </Avatar>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                            {req.studentName}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#ea580c", fontWeight: 600 }}>{formatDate(req.createdAt)}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569", fontWeight: 600 }}>
+                      {req.studentPhone || "—"}
+                    </td>
+                    <td style={{ padding: "12px 16px", minWidth: 190 }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <SchoolOutlined style={{ width: 16, height: 16, color: "#3b82f6", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
+                            {req.courseName}
+                          </span>
+                        </div>
+                        {req.coursePrice !== undefined && (
+                          <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 700, marginLeft: 22, marginTop: 2 }}>
+                            {Number(req.coursePrice).toLocaleString("uz-UZ")} UZS
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+                        background: "#fff7ed", color: "#c2410c", border: "1px solid #fed7aa"
+                      }}>
+                        <HourglassEmptyOutlined style={{ width: 13, height: 13 }} />
+                        Kutilmoqda
+                      </span>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <button
+                        onClick={() => handleApprovePaymentRequest(req)}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                          padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600,
+                          cursor: "pointer", border: "none", transition: "all 0.2s",
+                          background: "#dbeafe", color: BLUE,
+                        }}
+                      >
+                        <CheckCircleOutlined style={{ width: 13, height: 13 }} /> Tasdiqlash
+                      </button>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <button
+                        onClick={() => handleRejectPaymentRequest(req.id)}
+                        style={{
+                          width: 30, height: 30, borderRadius: 7,
+                          border: "1px solid #fecaca", background: "#fff",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer", transition: "all 0.2s"
+                        }}
+                      >
+                        <DeleteOutlined style={{ width: 15, height: 15, color: "#ef4444" }} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {paginated.length === 0 && paymentRequests.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
                       Talabalar topilmadi
