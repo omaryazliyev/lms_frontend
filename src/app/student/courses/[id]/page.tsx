@@ -32,6 +32,8 @@ type Lesson = {
   exams?: { id: number; question: string; variantA: string; variantB: string; variantC: string; variantD: string; answer: string }[];
 };
 
+type Section = { id: number; name: string; lessons: Lesson[] };
+type Course = { id: number; name: string; sections: Section[] };
 type QaReply = { id: number; text: string; senderRole?: string; author: string; time: string };
 type QaItem = { id: string; text: string; author: string; createdAt: string; fileName?: string; answer?: string; answerAuthor?: string; answerTime?: string; replies?: QaReply[] };
 
