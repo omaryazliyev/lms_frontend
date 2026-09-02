@@ -161,6 +161,21 @@ export default function StudentCoursePlayer() {
           answerTime: q.update_at ? new Date(q.update_at).toLocaleString("uz-UZ") : undefined,
         }));
         setQuestions(list);
+
+        // Populate notification bell items for answered questions
+        const notifItems: NotificationItem[] = raw
+          .filter((q: any) => q.answer)
+          .map((q: any) => ({
+            id: q.id,
+            senderName: `${q.answerer?.full_name || "Mentor"} (mentor)`,
+            courseName: course?.name || "Kurs",
+            text: q.answer,
+            time: q.update_at ? new Date(q.update_at).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" }) : "",
+            isRead: false
+          }));
+        if (notifItems.length > 0) {
+          setNotifications(notifItems);
+        }
         try { localStorage.removeItem(`lesson-qa-${activeLesson.id}`); } catch {}
       })
       .catch(() => {
@@ -171,79 +186,130 @@ export default function StudentCoursePlayer() {
     setExamAnswers({});
     setExamSubmitted(false);
     setTab("qa");
-  }, [activeLesson?.id]);
+  }, [activeLesson?.id, course?.name]);
 
-  // WebSocket for Live Q&A and Real-time Notifications
+  // Periodic 5-second polling for real-time mentor answer notifications cross-device
   useEffect(() => {
+    if (!activeLesson?.id) return;
+    const interval = setInterval(() => {
+      api.get(`/questions/lesson/${activeLesson.id}`)
+        .then(res => {
+          const raw = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
+          if (raw.length > 0) {
+            const list = raw.map((q: any) => ({
+              id: String(q.id),
+              text: q.text,
+              author: q.student?.full_name || "O'quvchi",
+              createdAt: new Date(q.create_at || Date.now()).toLocaleString("uz-UZ"),
+              answer: q.answer || undefined,
+              answerAuthor: q.answerer?.full_name || "Mentor",
+              answerTime: q.update_at ? new Date(q.update_at).toLocaleString("uz-UZ") : undefined,
+            }));
+            setQuestions(list);
+
+            const answered = raw.filter((q: any) => q.answer);
+            if (answered.length > 0) {
+              setNotifications(prev => {
+                const existingIds = new Set(prev.map(n => n.id));
+                const newNotifs = answered
+                  .filter((q: any) => !existingIds.has(q.id))
+                  .map((q: any) => ({
+                    id: q.id,
+                    senderName: `${q.answerer?.full_name || "Mentor"} (mentor)`,
+                    courseName: course?.name || "Kurs",
+                    text: q.answer,
+                    time: q.update_at ? new Date(q.update_at).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" }) : "",
+                    isRead: false
+                  }));
+                return newNotifs.length > 0 ? [...newNotifs, ...prev] : prev;
+              });
+            }
+          }
+        })
+        .catch(() => {});
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [activeLesson?.id, course?.name]);
+
+  // BroadcastChannel & LocalStorage & WebSocket Live Sync for notifications & Q&A
+  useEffect(() => {
+    const handleMessagePayload = (data: any) => {
+      if (!data) return;
+      if (data.sender === "mentor" || data.type === "qa_reply" || data.type === "chat_message") {
+        const timeStr = data.time || new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
+        const mName = data.mentorName || data.author || "Mentor";
+        const ansText = data.text || "Yangi javob keldi";
+
+        setQuestions(prev => {
+          const idx = prev.findIndex(q => !q.answer);
+          if (idx !== -1) {
+            const updated = [...prev];
+            updated[idx] = {
+              ...updated[idx],
+              answer: ansText,
+              answerAuthor: mName,
+              answerTime: timeStr
+            };
+            return updated;
+          }
+          return prev;
+        });
+
+        setNotifications(prev => [
+          {
+            id: Date.now(),
+            senderName: `${mName} (mentor)`,
+            courseName: course?.name || "Kurs",
+            text: ansText,
+            time: timeStr,
+            isRead: false
+          },
+          ...prev
+        ]);
+      }
+    };
+
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        const bc = new BroadcastChannel("lms_live_channel");
+        bc.onmessage = (e) => { if (e.data) handleMessagePayload(e.data); };
+      }
+    } catch {}
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "lms_sync_msg" && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          handleMessagePayload(data);
+        } catch {}
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+
     const wsUrl = "ws://3.75.176.131:8080/ws";
     let socket: WebSocket | null = null;
-
     try {
       socket = new WebSocket(wsUrl);
       wsRef.current = socket;
-
-      socket.onopen = () => {
-        setWsConnected(true);
-      };
-
+      socket.onopen = () => setWsConnected(true);
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "chat_message" || data.type === "qa_reply" || data.type === "notification") {
-            const timeStr = new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
-
-            if (data.sender === "mentor" || data.author || data.text) {
-              const mName = data.mentorName || data.author || "Mentor";
-
-              setQuestions(prev => {
-                const idx = prev.findIndex(q => !q.answer);
-                if (idx !== -1) {
-                  const updated = [...prev];
-                  updated[idx] = {
-                    ...updated[idx],
-                    answer: data.text,
-                    answerAuthor: mName,
-                    answerTime: timeStr
-                  };
-                  if (activeLesson?.id) {
-                    localStorage.setItem(`lesson-qa-${activeLesson.id}`, JSON.stringify(updated));
-                  }
-                  return updated;
-                }
-                return prev;
-              });
-
-              setNotifications(prev => [
-                {
-                  id: Date.now(),
-                  senderName: mName,
-                  courseName: course?.name || "Kurs",
-                  text: data.text || "Yangi javob keldi",
-                  time: timeStr,
-                  isRead: false
-                },
-                ...prev
-              ]);
-            }
-          }
+          handleMessagePayload(data);
         } catch {}
       };
-
-      socket.onerror = () => {
-        setWsConnected(false);
-      };
-
-      socket.onclose = () => {
-        setWsConnected(false);
-      };
+      socket.onerror = () => setWsConnected(false);
+      socket.onclose = () => setWsConnected(false);
     } catch {
       setWsConnected(false);
     }
 
     return () => {
+      window.removeEventListener("storage", handleStorage);
       if (socket) socket.close();
     };
-  }, [course?.name, activeLesson?.id]);
+  }, [course?.name]);
 
   const allLessons = useMemo(
     () => (course?.sections || []).flatMap((s) => s.lessons || []),
