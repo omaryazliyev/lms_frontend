@@ -53,6 +53,7 @@ export default function PaymentsTab() {
 
   // ─── Yangi kurs so'rovlari (alohida bo'lim) ───
   const [newCourseRequests, setNewCourseRequests] = useState<any[]>([]);
+  const [approvedCourseRequests, setApprovedCourseRequests] = useState<any[]>([]);
   const [approvingReqId, setApprovingReqId] = useState<number | null>(null);
 
   const fetchStudents = useCallback(async () => {
@@ -81,8 +82,8 @@ export default function PaymentsTab() {
   const loadNewCourseRequests = () => {
     try {
       const raw = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
-      // Faqat PENDING so'rovlar
       setNewCourseRequests(raw.filter((r: any) => r.status === "PENDING"));
+      setApprovedCourseRequests(raw.filter((r: any) => r.status === "APPROVED"));
     } catch {}
   };
 
@@ -99,15 +100,12 @@ export default function PaymentsTab() {
   const handleApproveNewCourse = async (req: any) => {
     setApprovingReqId(req.id);
     try {
-      // MUHIM: assign-course chaqirmaymiz — u eski courseId ni o'chirib yangi bilan almashtiradi.
-      // Yangi kurs so'rovi faqat ma'lumot sifatida saqlanadi, admin biladi.
-      // Faqat localStorage da APPROVED qilamiz.
       const raw = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
       const updated = raw.map((r: any) => r.id === req.id ? { ...r, status: "APPROVED" } : r);
       localStorage.setItem("lms_payment_requests", JSON.stringify(updated));
       window.dispatchEvent(new Event("storage"));
 
-      setNewCourseRequests(prev => prev.filter(r => r.id !== req.id));
+      loadNewCourseRequests();
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2500);
     } catch {
@@ -117,14 +115,14 @@ export default function PaymentsTab() {
     }
   };
 
-  // ─── Yangi kurs so'rovini rad etish ───
+  // ─── Yangi kurs so'rovini rad etish / o'chirish ───
   const handleRejectNewCourse = (reqId: number) => {
     try {
       const raw = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
       const updated = raw.filter((r: any) => r.id !== reqId);
       localStorage.setItem("lms_payment_requests", JSON.stringify(updated));
       window.dispatchEvent(new Event("storage"));
-      setNewCourseRequests(prev => prev.filter(r => r.id !== reqId));
+      loadNewCourseRequests();
     } catch {}
   };
 
@@ -549,6 +547,80 @@ export default function PaymentsTab() {
                     <td style={{ padding: "12px 16px" }}>
                       <button
                         onClick={() => handleDelete(student.id)}
+                        style={{
+                          width: 30, height: 30, borderRadius: 7,
+                          border: "1px solid #fecaca", background: "#fff",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer", transition: "all 0.2s"
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fee2e2"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                      >
+                        <DeleteOutlined style={{ width: 15, height: 15, color: "#ef4444" }} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Approved Extra Course Purchase Rows (Separate Rows) */}
+                {approvedCourseRequests.map((req) => (
+                  <tr key={`appreq-${req.id}`} style={{
+                    borderBottom: "1px solid #f1f5f9",
+                    background: "#f0fdf4",
+                    transition: "background 0.15s"
+                  }}>
+                    <td style={{ padding: "12px 16px", fontSize: 13, color: "#16a34a", fontWeight: 700 }}>
+                      {req.studentId || "NEW"}
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <Avatar sx={{ width: 32, height: 32, fontSize: 12, fontWeight: 700, bgcolor: "#16a34a" }}>
+                          {initials(req.studentName)}
+                        </Avatar>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>
+                            {req.studentName}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#16a34a", fontWeight: 600 }}>{formatDate(req.createdAt)}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>
+                      {req.studentPhone || "—"}
+                    </td>
+                    <td style={{ padding: "12px 16px", minWidth: 190 }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <SchoolOutlined style={{ width: 16, height: 16, color: "#3b82f6", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
+                            {req.courseName}
+                          </span>
+                        </div>
+                        {req.coursePrice !== undefined && (
+                          <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 700, marginLeft: 22, marginTop: 2 }}>
+                            {Number(req.coursePrice).toLocaleString("uz-UZ")} UZS
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+                        background: "#dcfce7", color: "#16a34a", border: "1px solid #bbf7d0"
+                      }}>
+                        <CheckCircleOutlined style={{ width: 13, height: 13 }} />
+                        Tasdiqlangan
+                      </span>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#16a34a" }}>
+                        ✓ Tasdiqlangan
+                      </span>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <button
+                        onClick={() => handleRejectNewCourse(req.id)}
                         style={{
                           width: 30, height: 30, borderRadius: 7,
                           border: "1px solid #fecaca", background: "#fff",

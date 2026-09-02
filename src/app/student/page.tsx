@@ -105,11 +105,30 @@ export default function StudentDashboard() {
     api.get("/student/my-course")
       .then(res => {
         const data = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
-        setMyCourses(data);
+        try {
+          const rawRequests = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
+          const myApproved = rawRequests.filter((r: any) => r.status === "APPROVED" && Number(r.studentId) === Number(user?.id));
+          const combined = [...data];
+          myApproved.forEach((req: any) => {
+            if (!combined.some(existing => Number(existing.id) === Number(req.courseId))) {
+              combined.push({
+                id: req.courseId,
+                name: req.courseName,
+                description: "Tasdiqlangan kurs",
+                prise: req.coursePrice,
+                level: "Boshlang'ich",
+                banner: null
+              });
+            }
+          });
+          setMyCourses(combined);
+        } catch {
+          setMyCourses(data);
+        }
       })
       .catch(() => setMyCourses([]))
       .finally(() => setLoadingMy(false));
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     api.get("/courses")
