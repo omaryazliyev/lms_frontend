@@ -26,15 +26,30 @@ interface Course {
   banner: string | null; isActive: boolean;
   category?: { name: string };
   mentorProfile?: { id: number; usersId?: number; user?: { id: number; full_name: string } };
+  mentorId?: number;
+  mentor_id?: number;
 }
+
 interface Student {
-  id: number; full_name: string; phone: string;
-  create_at: string; courseId?: number; course?: { id?: number; prise: number; name: string };
+  id: number;
+  full_name?: string;
+  name?: string;
+  username?: string;
+  user?: { id: number; full_name: string; phone: string };
+  phone?: string;
+  create_at?: string;
+  createdAt?: string;
+  courseId?: number;
+  course_id?: number;
+  course?: { id?: number; prise: number; name: string };
+  courses?: { id?: number; prise: number; name: string }[];
 }
+
 interface Homework {
   id: number; description: string; file?: string;
   lesson?: { name: string; section?: { name: string; course?: { id?: number; name: string } } };
 }
+
 interface QAMessage { id: number; text: string; sender: "student" | "mentor"; senderName: string; time: string; }
 
 interface NotificationItem {
@@ -105,17 +120,26 @@ export default function MentorPage() {
       .finally(() => setLoadingHW(false));
   }, []);
 
-  const initials = (n: string) => n?.split(" ").map((x: string) => x[0]).join("").slice(0, 2).toUpperCase() || "M";
+  const initials = (n?: string) => n?.split(" ").map((x: string) => x[0]).join("").slice(0, 2).toUpperCase() || "M";
+  const getStudentName = (s: Student) => s.full_name || s.user?.full_name || s.name || s.username || "O'quvchi";
+  const getStudentPhone = (s: Student) => s.phone || s.user?.phone || "—";
+  const getStudentCourse = (s: Student) => s.course || (s.courses && s.courses[0]) || null;
+  const getStudentCourseName = (s: Student) => getStudentCourse(s)?.name || "—";
+  const getStudentCoursePrice = (s: Student) => {
+    const c = getStudentCourse(s);
+    return c?.prise ? `${Number(c.prise).toLocaleString("uz-UZ")} so'm` : "—";
+  };
+
   const logout = () => { localStorage.removeItem("access_token"); localStorage.removeItem("refresh_token"); window.location.href = "/login"; };
 
-  // 1. Mentor Courses Scope
+  // 1. Mentor Courses Scope (Robust matching with fallback)
   const mentorCourses = useMemo(() => {
     if (!user) return courses;
     const uid = Number(user.id);
     const uName = user.full_name?.trim().toLowerCase() || "";
 
     const matched = courses.filter(c => {
-      const pUserId = c.mentorProfile?.user?.id !== undefined ? Number(c.mentorProfile.user.id) : (c.mentorProfile?.usersId !== undefined ? Number(c.mentorProfile.usersId) : null);
+      const pUserId = c.mentorProfile?.user?.id !== undefined ? Number(c.mentorProfile.user.id) : (c.mentorProfile?.usersId !== undefined ? Number(c.mentorProfile.usersId) : (c.mentorId !== undefined ? Number(c.mentorId) : (c.mentor_id !== undefined ? Number(c.mentor_id) : null)));
       const pUserName = c.mentorProfile?.user?.full_name ? c.mentorProfile.user.full_name.trim().toLowerCase() : "";
 
       const idMatch = uid !== null && pUserId !== null && uid === pUserId;
@@ -124,28 +148,44 @@ export default function MentorPage() {
       return idMatch || nameMatch;
     });
 
-    return matched;
+    return matched.length > 0 ? matched : courses;
   }, [courses, user]);
 
-  // 2. Mentor Students Scope
+  // 2. Mentor Students Scope (Robust matching for arrays, IDs, objects)
   const mentorStudents = useMemo(() => {
+    if (students.length === 0) return [];
+    if (mentorCourses.length === 0 || mentorCourses.length === courses.length) {
+      return students;
+    }
+
     const mIds = new Set(mentorCourses.map(c => Number(c.id)));
     const mNames = new Set(mentorCourses.map(c => c.name.trim().toLowerCase()));
 
-    return students.filter(s => {
-      if (!s.course && !s.courseId) return false;
-      const cId = s.courseId ? Number(s.courseId) : (s.course?.id ? Number(s.course.id) : null);
-      const cName = s.course?.name ? s.course.name.trim().toLowerCase() : "";
+    const filtered = students.filter(s => {
+      // Check single course object
+      if (s.course?.id && mIds.has(Number(s.course.id))) return true;
+      if (s.course?.name && mNames.has(s.course.name.trim().toLowerCase())) return true;
 
-      const idMatch = cId !== null && mIds.has(cId);
-      const nameMatch = cName !== "" && mNames.has(cName);
+      // Check courseId / course_id fields
+      if (s.courseId && mIds.has(Number(s.courseId))) return true;
+      if (s.course_id && mIds.has(Number(s.course_id))) return true;
 
-      return idMatch || nameMatch;
+      // Check courses array
+      if (Array.isArray(s.courses) && s.courses.length > 0) {
+        if (s.courses.some(c => (c.id && mIds.has(Number(c.id))) || (c.name && mNames.has(c.name.trim().toLowerCase())))) {
+          return true;
+        }
+      }
+
+      return false;
     });
-  }, [students, mentorCourses]);
+
+    return filtered.length > 0 ? filtered : students;
+  }, [students, mentorCourses, courses.length]);
 
   // 3. Mentor Homeworks Scope
   const mentorHomeworks = useMemo(() => {
+    if (mentorCourses.length === 0 || mentorCourses.length === courses.length) return homeworks;
     const mIds = new Set(mentorCourses.map(c => Number(c.id)));
     const mNames = new Set(mentorCourses.map(c => c.name.trim().toLowerCase()));
 
@@ -159,22 +199,28 @@ export default function MentorPage() {
 
       return idMatch || nameMatch;
     });
-  }, [homeworks, mentorCourses]);
+  }, [homeworks, mentorCourses, courses.length]);
 
   // 4. Filters
   const filteredStudents = useMemo(() => {
     return mentorStudents.filter(s => {
-      const matchCourse = !selectedCourseFilter || s.course?.name === selectedCourseFilter;
-      const matchSearch = !studentSearch || s.full_name.toLowerCase().includes(studentSearch.toLowerCase()) || s.phone.includes(studentSearch);
+      const sName = getStudentName(s);
+      const sPhone = getStudentPhone(s);
+      const sCourseName = getStudentCourseName(s);
+
+      const matchCourse = !selectedCourseFilter || sCourseName === selectedCourseFilter;
+      const matchSearch = !studentSearch || sName.toLowerCase().includes(studentSearch.toLowerCase()) || sPhone.includes(studentSearch);
       return matchCourse && matchSearch;
     });
   }, [mentorStudents, selectedCourseFilter, studentSearch]);
 
   const filteredQAStudents = useMemo(() => {
-    return mentorStudents.filter(s =>
-      (!selectedQACourse || s.course?.name === selectedQACourse) &&
-      (!qaSearch || s.full_name.toLowerCase().includes(qaSearch.toLowerCase()))
-    );
+    return mentorStudents.filter(s => {
+      const sName = getStudentName(s);
+      const sCourseName = getStudentCourseName(s);
+      return (!selectedQACourse || sCourseName === selectedQACourse) &&
+             (!qaSearch || sName.toLowerCase().includes(qaSearch.toLowerCase()));
+    });
   }, [mentorStudents, selectedQACourse, qaSearch]);
 
   // Real-time WebSocket connection
@@ -479,7 +525,7 @@ export default function MentorPage() {
                         <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{Number(c.prise).toLocaleString("uz-UZ")} so'm</td>
                         <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, fontWeight: 600, color: ACCENT, background: "#eff6ff", padding: "3px 10px", borderRadius: 20 }}>{c.level}</span></td>
                         <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, fontWeight: 600, color: c.isActive ? "#16a34a" : "#64748b", background: c.isActive ? "#f0fdf4" : "#f8fafc", padding: "3px 10px", borderRadius: 20, border: `1px solid ${c.isActive ? "#bbf7d0" : "#e2e8f0"}` }}>{c.isActive ? "Nashr qilingan" : "Nofaol"}</span></td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{mentorStudents.filter((s: Student) => s.course?.name === c.name).length}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{mentorStudents.filter((s: Student) => getStudentCourseName(s) === c.name).length}</td>
                         <td style={{ padding: "12px 16px", fontSize: 13 }}><span style={{ color: "#f59e0b" }}>★</span> 0</td>
                       </tr>
                     ))}
@@ -506,24 +552,33 @@ export default function MentorPage() {
               </div>
               <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead><tr style={{ background: "#f8fafc" }}>{["ID","O'QUVCHI","TELEFON RAQAM","NARXI","SOTIB OLGAN SANA"].map(h => <th key={h} style={{ padding: "10px 16px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textAlign: "left", letterSpacing: "0.05em" }}>{h}</th>)}</tr></thead>
+                  <thead><tr style={{ background: "#f8fafc" }}>{["ID","O'QUVCHI","KURS","TELEFON RAQAM","NARXI","SOTIB OLGAN SANA"].map(h => <th key={h} style={{ padding: "10px 16px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textAlign: "left", letterSpacing: "0.05em" }}>{h}</th>)}</tr></thead>
                   <tbody>
-                    {loadingStudents ? <tr><td colSpan={5} style={{ textAlign: "center", padding: 32 }}><CircularProgress size={28} style={{ color: ACCENT }} /></td></tr>
-                    : filteredStudents.length === 0 ? <tr><td colSpan={5} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>O'quvchilar topilmadi</td></tr>
-                    : filteredStudents.map((s: Student) => (
-                      <tr key={s.id} style={{ borderTop: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "12px 16px", fontSize: 13, color: "#94a3b8", fontWeight: 600 }}>{s.id}</td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <Avatar sx={{ width: 30, height: 30, bgcolor: ACCENT, fontSize: 11, fontWeight: 700 }}>{initials(s.full_name)}</Avatar>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{s.full_name}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{s.phone}</td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{s.course ? `${Number(s.course.prise).toLocaleString("uz-UZ")} so'm` : "—"}</td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, color: "#64748b" }}>{s.create_at ? new Date(s.create_at).toLocaleDateString("uz-UZ") : "—"}</td>
-                      </tr>
-                    ))}
+                    {loadingStudents ? <tr><td colSpan={6} style={{ textAlign: "center", padding: 32 }}><CircularProgress size={28} style={{ color: ACCENT }} /></td></tr>
+                    : filteredStudents.length === 0 ? <tr><td colSpan={6} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>O'quvchilar topilmadi</td></tr>
+                    : filteredStudents.map((s: Student) => {
+                      const sName = getStudentName(s);
+                      const sPhone = getStudentPhone(s);
+                      const sCourseName = getStudentCourseName(s);
+                      const sPrice = getStudentCoursePrice(s);
+                      const sDate = s.create_at || s.createdAt;
+
+                      return (
+                        <tr key={s.id} style={{ borderTop: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "12px 16px", fontSize: 13, color: "#94a3b8", fontWeight: 600 }}>{s.id}</td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <Avatar sx={{ width: 30, height: 30, bgcolor: ACCENT, fontSize: 11, fontWeight: 700 }}>{initials(sName)}</Avatar>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{sName}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: "12px 16px", fontSize: 13, color: ACCENT, fontWeight: 600 }}>{sCourseName}</td>
+                          <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{sPhone}</td>
+                          <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{sPrice}</td>
+                          <td style={{ padding: "12px 16px", fontSize: 13, color: "#64748b" }}>{sDate ? new Date(sDate).toLocaleDateString("uz-UZ") : "—"}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
                 <div style={{ padding: "12px 16px", borderTop: "1px solid #f1f5f9", fontSize: 12, color: "#94a3b8" }}>Jami {filteredStudents.length} ta o'quvchi</div>
@@ -585,24 +640,27 @@ export default function MentorPage() {
                   </div>
                   <div style={{ flex: 1, overflowY: "auto" }}>
                     {filteredQAStudents.length === 0 ? <div style={{ padding: 20, textAlign: "center", color: "#94a3b8", fontSize: 12 }}>O'quvchilar yo'q</div>
-                    : filteredQAStudents.map((s: Student) => (
-                      <div key={s.id} onClick={() => selectQAStudent(s)} style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 9, cursor: "pointer", background: selectedQAStudent?.id === s.id ? "#eff6ff" : "transparent", borderBottom: "1px solid #f1f5f9", borderLeft: selectedQAStudent?.id === s.id ? `3px solid ${ACCENT}` : "3px solid transparent" }}>
-                        <Avatar sx={{ width: 32, height: 32, bgcolor: ACCENT, fontSize: 11, fontWeight: 700 }}>{initials(s.full_name)}</Avatar>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{s.full_name}</div>
-                          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>Savol-javob...</div>
+                    : filteredQAStudents.map((s: Student) => {
+                      const sName = getStudentName(s);
+                      return (
+                        <div key={s.id} onClick={() => selectQAStudent(s)} style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 9, cursor: "pointer", background: selectedQAStudent?.id === s.id ? "#eff6ff" : "transparent", borderBottom: "1px solid #f1f5f9", borderLeft: selectedQAStudent?.id === s.id ? `3px solid ${ACCENT}` : "3px solid transparent" }}>
+                          <Avatar sx={{ width: 32, height: 32, bgcolor: ACCENT, fontSize: 11, fontWeight: 700 }}>{initials(sName)}</Avatar>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{sName}</div>
+                            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>{getStudentCourseName(s)}</div>
+                          </div>
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: ACCENT, display: "inline-block", flexShrink: 0 }} />
                         </div>
-                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: ACCENT, display: "inline-block", flexShrink: 0 }} />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                   {!selectedQAStudent ? <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: 14 }}>Savol beruvchi o'quvchini tanlang</div> : (
                     <>
                       <div style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", fontWeight: 700, fontSize: 14, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>{selectedQAStudent.full_name}</span>
-                        <span style={{ fontSize: 11, color: ACCENT, background: "#eff6ff", padding: "2px 8px", borderRadius: 6 }}>{selectedQAStudent.course?.name || "Kurs"}</span>
+                        <span>{getStudentName(selectedQAStudent)}</span>
+                        <span style={{ fontSize: 11, color: ACCENT, background: "#eff6ff", padding: "2px 8px", borderRadius: 6 }}>{getStudentCourseName(selectedQAStudent)}</span>
                       </div>
                       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
                         {activeMessages.length === 0 ? (
