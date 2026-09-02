@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Avatar, Badge, CircularProgress } from "@mui/material";
 import GridViewOutlined from "@mui/icons-material/GridViewOutlined";
 import PeopleOutlined from "@mui/icons-material/PeopleOutlined";
@@ -14,6 +14,8 @@ import StarOutlined from "@mui/icons-material/StarOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import SendOutlined from "@mui/icons-material/SendOutlined";
+import ChatBubbleOutlineOutlined from "@mui/icons-material/ChatBubbleOutlineOutlined";
+import DoneAllOutlined from "@mui/icons-material/DoneAllOutlined";
 import api from "../../api/axios";
 
 const SIDEBAR_BG = "rgb(13,16,23)";
@@ -35,12 +37,23 @@ interface Homework {
 }
 interface QAMessage { id: number; text: string; sender: "student" | "mentor"; senderName: string; time: string; }
 
+interface NotificationItem {
+  id: number;
+  studentId: number;
+  studentName: string;
+  courseName: string;
+  text: string;
+  time: string;
+  isRead: boolean;
+}
+
 export default function MentorPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [foydalanuvchilarOpen, setFoydalanuvchilarOpen] = useState(true);
   const [materiallarOpen, setMateriallarOpen] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -53,10 +66,27 @@ export default function MentorPage() {
   const [studentSearch, setStudentSearch] = useState("");
 
   const [selectedQAStudent, setSelectedQAStudent] = useState<Student | null>(null);
-  const [qaMessages, setQaMessages] = useState<QAMessage[]>([]);
+  const [qaMessages, setQaMessages] = useState<Record<number, QAMessage[]>>({});
   const [qaInput, setQaInput] = useState("");
   const [qaSearch, setQaSearch] = useState("");
   const [selectedQACourse, setSelectedQACourse] = useState("");
+
+  // Notifications State
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    {
+      id: 1,
+      studentId: 1,
+      studentName: "Qodirjon Alimov",
+      courseName: "Frontend",
+      text: "Assalomu alaykum ustoz, dars bo'yicha savolim bor edi.",
+      time: "10:30",
+      isRead: false,
+    }
+  ]);
+
+  // WebSocket Ref & State
+  const wsRef = useRef<WebSocket | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -89,7 +119,7 @@ export default function MentorPage() {
   const logout = () => { localStorage.removeItem("access_token"); localStorage.removeItem("refresh_token"); window.location.href = "/login"; };
 
   // 1. Mentor Courses Scope
-  const mentorCourses = React.useMemo(() => {
+  const mentorCourses = useMemo(() => {
     if (!user) return courses;
     const uid = Number(user.id);
     const uName = user.full_name?.trim().toLowerCase() || "";
@@ -108,7 +138,7 @@ export default function MentorPage() {
   }, [courses, user]);
 
   // 2. Mentor Students Scope
-  const mentorStudents = React.useMemo(() => {
+  const mentorStudents = useMemo(() => {
     const mIds = new Set(mentorCourses.map(c => Number(c.id)));
     const mNames = new Set(mentorCourses.map(c => c.name.trim().toLowerCase()));
 
@@ -125,7 +155,7 @@ export default function MentorPage() {
   }, [students, mentorCourses]);
 
   // 3. Mentor Homeworks Scope
-  const mentorHomeworks = React.useMemo(() => {
+  const mentorHomeworks = useMemo(() => {
     const mIds = new Set(mentorCourses.map(c => Number(c.id)));
     const mNames = new Set(mentorCourses.map(c => c.name.trim().toLowerCase()));
 
@@ -142,7 +172,7 @@ export default function MentorPage() {
   }, [homeworks, mentorCourses]);
 
   // 4. Filters
-  const filteredStudents = React.useMemo(() => {
+  const filteredStudents = useMemo(() => {
     return mentorStudents.filter(s => {
       const matchCourse = !selectedCourseFilter || s.course?.name === selectedCourseFilter;
       const matchSearch = !studentSearch || s.full_name.toLowerCase().includes(studentSearch.toLowerCase()) || s.phone.includes(studentSearch);
@@ -150,44 +180,163 @@ export default function MentorPage() {
     });
   }, [mentorStudents, selectedCourseFilter, studentSearch]);
 
-  const filteredQAStudents = React.useMemo(() => {
+  const filteredQAStudents = useMemo(() => {
     return mentorStudents.filter(s =>
       (!selectedQACourse || s.course?.name === selectedQACourse) &&
       (!qaSearch || s.full_name.toLowerCase().includes(qaSearch.toLowerCase()))
     );
   }, [mentorStudents, selectedQACourse, qaSearch]);
 
+  // Real-time WebSocket connection
+  useEffect(() => {
+    const wsUrl = "ws://3.75.176.131:8080/ws";
+    let socket: WebSocket | null = null;
+
+    try {
+      socket = new WebSocket(wsUrl);
+      wsRef.current = socket;
+
+      socket.onopen = () => {
+        setWsConnected(true);
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "chat_message" || data.type === "notification") {
+            handleIncomingRealtimeMessage(data);
+          }
+        } catch {}
+      };
+
+      socket.onerror = () => {
+        setWsConnected(false);
+      };
+
+      socket.onclose = () => {
+        setWsConnected(false);
+      };
+    } catch {
+      setWsConnected(false);
+    }
+
+    return () => {
+      if (socket) socket.close();
+    };
+  }, []);
+
+  const handleIncomingRealtimeMessage = (msgData: { studentId: number; studentName: string; text: string; courseName?: string }) => {
+    const sId = msgData.studentId;
+    const timeStr = new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
+
+    // Append to live chat
+    setQaMessages(prev => ({
+      ...prev,
+      [sId]: [
+        ...(prev[sId] || []),
+        { id: Date.now(), text: msgData.text, sender: "student", senderName: msgData.studentName, time: timeStr }
+      ]
+    }));
+
+    // Append to Notifications list & update badge
+    setNotifications(prev => [
+      {
+        id: Date.now(),
+        studentId: sId,
+        studentName: msgData.studentName,
+        courseName: msgData.courseName || "Kurs",
+        text: msgData.text,
+        time: timeStr,
+        isRead: false
+      },
+      ...prev
+    ]);
+  };
+
   // Auto-select QA student when tab opens
   useEffect(() => {
     if (activeTab === "qa" && filteredQAStudents.length > 0 && !selectedQAStudent) {
       const s = filteredQAStudents[0];
       setSelectedQAStudent(s);
-      setQaMessages([
-        { id: 1, text: `Assalomu alaykum ustoz, ${s.course?.name || "kurs"} bo'yicha savolim bor edi.`, sender: "student", senderName: s.full_name, time: "10:30" },
-        { id: 2, text: "Vazifani tekshirib bera olasizmi?", sender: "student", senderName: s.full_name, time: "10:32" }
-      ]);
+      setQaMessages(prev => {
+        if (!prev[s.id]) {
+          return {
+            ...prev,
+            [s.id]: [
+              { id: 1, text: `Assalomu alaykum ustoz, ${s.course?.name || "kurs"} bo'yicha savolim bor edi.`, sender: "student", senderName: s.full_name, time: "10:30" },
+              { id: 2, text: "Vazifani tekshirib bera olasizmi?", sender: "student", senderName: s.full_name, time: "10:32" }
+            ]
+          };
+        }
+        return prev;
+      });
     }
   }, [activeTab, filteredQAStudents, selectedQAStudent]);
 
+  const selectQAStudent = (s: Student) => {
+    setSelectedQAStudent(s);
+    setQaMessages(prev => {
+      if (!prev[s.id]) {
+        return {
+          ...prev,
+          [s.id]: [
+            { id: 1, text: `Assalomu alaykum ustoz, ${s.course?.name || "dars"} bo'yicha savolim bor edi.`, sender: "student", senderName: s.full_name, time: "10:30" },
+            { id: 2, text: "Topshiriqni qayta yukladim, ko'rib berolasizmi?", sender: "student", senderName: s.full_name, time: "10:32" }
+          ]
+        };
+      }
+      return prev;
+    });
+  };
+
   const sendMessage = () => {
     if (!qaInput.trim() || !selectedQAStudent) return;
-    setQaMessages(prev => [...prev, {
+    const sId = selectedQAStudent.id;
+    const timeStr = new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
+
+    const newMsg: QAMessage = {
       id: Date.now(),
       text: qaInput,
       sender: "mentor",
       senderName: user?.full_name || "Mentor",
-      time: new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" })
-    }]);
+      time: timeStr
+    };
+
+    setQaMessages(prev => ({
+      ...prev,
+      [sId]: [...(prev[sId] || []), newMsg]
+    }));
+
+    // Send via WebSocket if open
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: "chat_message",
+        studentId: sId,
+        text: qaInput,
+        sender: "mentor"
+      }));
+    }
+
     setQaInput("");
   };
 
-  const selectQAStudent = (s: Student) => {
-    setSelectedQAStudent(s);
-    setQaMessages([
-      { id: 1, text: `Assalomu alaykum ustoz, ${s.course?.name || "dars"} bo'yicha savolim bor edi.`, sender: "student", senderName: s.full_name, time: "10:30" },
-      { id: 2, text: "Topshiriqni qayta yukladim, ko'rib berolasizmi?", sender: "student", senderName: s.full_name, time: "10:32" }
-    ]);
+  const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
   };
+
+  const handleNotificationClick = (notif: NotificationItem) => {
+    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+    const targetStudent = mentorStudents.find(s => s.id === notif.studentId);
+    if (targetStudent) {
+      setSelectedQAStudent(targetStudent);
+    }
+    setActiveTab("qa");
+    setNotificationsOpen(false);
+  };
+
+  const activeMessages = selectedQAStudent ? (qaMessages[selectedQAStudent.id] || []) : [];
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#f4f7fa", fontFamily: "'Inter', sans-serif" }}>
@@ -244,11 +393,57 @@ export default function MentorPage() {
             <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Mentor</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button style={{ width: 38, height: 38, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-              <Badge variant="dot" color="error" sx={{ "& .MuiBadge-badge": { width: 5, height: 5, minWidth: 5 } }}>
-                <NotificationsNoneOutlined style={{ width: 18, height: 18, color: "#64748b" }} />
-              </Badge>
-            </button>
+
+            {/* NOTIFICATION BELL WITH BADGE & DROPDOWN */}
+            <div style={{ position: "relative" }}>
+              <button onClick={() => setNotificationsOpen(p => !p)} style={{ width: 38, height: 38, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
+                <Badge badgeContent={unreadCount} color="error" sx={{ "& .MuiBadge-badge": { fontSize: 10, height: 16, minWidth: 16, fontWeight: 700 } }}>
+                  <NotificationsNoneOutlined style={{ width: 18, height: 18, color: unreadCount > 0 ? ACCENT : "#64748b" }} />
+                </Badge>
+              </button>
+
+              {notificationsOpen && (
+                <>
+                  <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={() => setNotificationsOpen(false)} />
+                  <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", width: 320, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.12)", padding: "12px 0", zIndex: 50 }}>
+                    <div style={{ padding: "0 16px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>Bildirishnomalar</span>
+                        {unreadCount > 0 && <span style={{ background: "#fff1f2", color: ACCENT, fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 10 }}>{unreadCount} yangi</span>}
+                      </div>
+                      {unreadCount > 0 && (
+                        <button onClick={markAllAsRead} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 3 }}>
+                          <DoneAllOutlined style={{ width: 14, height: 14 }} /> Barchasi o'qildi
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ maxHeight: 280, overflowY: "auto" }}>
+                      {notifications.length === 0 ? (
+                        <div style={{ padding: "24px 16px", textAlign: "center", color: "#94a3b8", fontSize: 12 }}>Bildirishnomalar yo'q</div>
+                      ) : (
+                        notifications.map(n => (
+                          <div key={n.id} onClick={() => handleNotificationClick(n)}
+                            style={{ padding: "10px 16px", display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", background: n.isRead ? "transparent" : "#fff1f2", borderBottom: "1px solid #f1f5f9", transition: "background 0.2s" }}>
+                            <Avatar sx={{ width: 32, height: 32, bgcolor: "#3b82f6", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials(n.studentName)}</Avatar>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{n.studentName}</span>
+                                <span style={{ fontSize: 10, color: "#94a3b8" }}>{n.time}</span>
+                              </div>
+                              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.text}</div>
+                            </div>
+                            {!n.isRead && <span style={{ width: 6, height: 6, borderRadius: "50%", background: ACCENT, marginTop: 5, flexShrink: 0 }} />}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* PROFILE MENU */}
             <div style={{ position: "relative" }}>
               <button onClick={() => setProfileOpen(p => !p)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 10px 4px 5px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 9, cursor: "pointer" }}>
                 <Avatar sx={{ width: 28, height: 28, bgcolor: ACCENT, fontSize: 11, fontWeight: 700 }}>{initials(user?.full_name)}</Avatar>
@@ -356,7 +551,7 @@ export default function MentorPage() {
                           </div>
                         </td>
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{s.phone}</td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{s.course ? `${Number(s.course.prise).toLocaleString("uz-UZ")} so\`m` : "—"}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{s.course ? `${Number(s.course.prise).toLocaleString("uz-UZ")} so`m` : "—"}</td>
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#64748b" }}>{s.create_at ? new Date(s.create_at).toLocaleDateString("uz-UZ") : "—"}</td>
                       </tr>
                     ))}
@@ -396,12 +591,15 @@ export default function MentorPage() {
             </div>
           )}
 
-          {/* SAVOL-JAVOBLAR */}
+          {/* SAVOL-JAVOBLAR (WEBSOCKET LIVE CHAT) */}
           {activeTab === "qa" && (
             <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: 0 }}>Savol-javoblar</h1>
-                <span style={{ fontSize: 12, color: "#64748b", display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />online</span>
+                <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: 0 }}>Savol-javoblar (WebSocket Live)</h1>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: wsConnected ? "#22c55e" : "#e53935", display: "inline-block" }} />
+                  <span style={{ color: "#64748b", fontWeight: 600 }}>{wsConnected ? "WebSocket faol" : "Online"}</span>
+                </div>
               </div>
               <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 14px" }}>{mentorCourses[0]?.name || ""}</p>
               <div style={{ flex: 1, display: "flex", background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
@@ -433,13 +631,16 @@ export default function MentorPage() {
                 <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                   {!selectedQAStudent ? <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: 14 }}>Savolni tanlang</div> : (
                     <>
-                      <div style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", fontWeight: 700, fontSize: 14, color: "#0f172a" }}>{selectedQAStudent.full_name}</div>
+                      <div style={{ padding: "12px 16px", borderBottom: "1px solid #e2e8f0", fontWeight: 700, fontSize: 14, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>{selectedQAStudent.full_name}</span>
+                        <span style={{ fontSize: 11, color: "#3b82f6", background: "#eff6ff", padding: "2px 8px", borderRadius: 6 }}>{selectedQAStudent.course?.name || "Kurs"}</span>
+                      </div>
                       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                        {qaMessages.map((m: QAMessage) => (
+                        {activeMessages.map((m: QAMessage) => (
                           <div key={m.id} style={{ display: "flex", justifyContent: m.sender === "mentor" ? "flex-end" : "flex-start", gap: 8 }}>
                             {m.sender === "student" && <Avatar sx={{ width: 26, height: 26, bgcolor: "#3b82f6", fontSize: 10 }}>{initials(m.senderName)}</Avatar>}
                             <div>
-                              <div style={{ maxWidth: 300, padding: "8px 12px", borderRadius: m.sender === "mentor" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: m.sender === "mentor" ? "#3b82f6" : "#f1f5f9", color: m.sender === "mentor" ? "#fff" : "#0f172a", fontSize: 13 }}>{m.text}</div>
+                              <div style={{ maxWidth: 320, padding: "8px 12px", borderRadius: m.sender === "mentor" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: m.sender === "mentor" ? ACCENT : "#f1f5f9", color: m.sender === "mentor" ? "#fff" : "#0f172a", fontSize: 13 }}>{m.text}</div>
                               <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, textAlign: m.sender === "mentor" ? "right" : "left" }}>{m.time}</div>
                             </div>
                             {m.sender === "mentor" && <Avatar sx={{ width: 26, height: 26, bgcolor: ACCENT, fontSize: 10 }}>{initials(user?.full_name)}</Avatar>}
@@ -447,7 +648,7 @@ export default function MentorPage() {
                         ))}
                       </div>
                       <div style={{ padding: "10px 14px", borderTop: "1px solid #e2e8f0", display: "flex", gap: 8 }}>
-                        <input value={qaInput} onChange={e => setQaInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder="Xabar yozing..." style={{ flex: 1, height: 36, padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, outline: "none" }} />
+                        <input value={qaInput} onChange={e => setQaInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder="Xabar yozing (WebSocket)..." style={{ flex: 1, height: 36, padding: "0 12px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, outline: "none" }} />
                         <button onClick={sendMessage} style={{ width: 36, height: 36, background: ACCENT, border: "none", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                           <SendOutlined style={{ width: 15, height: 15, color: "#fff" }} />
                         </button>
