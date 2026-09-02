@@ -48,7 +48,7 @@ interface NotificationItem {
 const SIDEBAR_BG = "rgb(13,16,23)";
 const BLUE = "#3b82f6";
 
-const initials = (name: string) =>
+const initials = (name?: string) =>
   name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "S";
 
 function fileUrl(filename?: string | null) {
@@ -103,7 +103,7 @@ export default function StudentCoursePlayer() {
     }
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      setUser({ full_name: payload.full_name || "O'quvchi", role: payload.role || "STUDENT" });
+      setUser({ id: Number(payload.id || payload.userId || payload.sub), full_name: payload.full_name || "O'quvchi", role: payload.role || "STUDENT" });
     } catch {
       setUser({ full_name: "O'quvchi" });
     }
@@ -169,29 +169,42 @@ export default function StudentCoursePlayer() {
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "qa_reply" || data.type === "notification") {
+          if (data.type === "chat_message" || data.type === "qa_reply" || data.type === "notification") {
             const timeStr = new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
 
-            if (data.questionId) {
-              setQuestions(prev => prev.map(q => q.id === data.questionId ? {
-                ...q,
-                answer: data.text,
-                answerAuthor: data.author || "Mentor",
-                answerTime: timeStr
-              } : q));
-            }
+            if (data.sender === "mentor" || data.author || data.text) {
+              const mName = data.mentorName || data.author || "Mentor";
 
-            setNotifications(prev => [
-              {
-                id: Date.now(),
-                senderName: data.author || "Mentor",
-                courseName: course?.name || "Kurs",
-                text: data.text || "Savolingizga yangi javob keldi",
-                time: timeStr,
-                isRead: false
-              },
-              ...prev
-            ]);
+              setQuestions(prev => {
+                const idx = prev.findIndex(q => !q.answer);
+                if (idx !== -1) {
+                  const updated = [...prev];
+                  updated[idx] = {
+                    ...updated[idx],
+                    answer: data.text,
+                    answerAuthor: mName,
+                    answerTime: timeStr
+                  };
+                  if (activeLesson?.id) {
+                    localStorage.setItem(`lesson-qa-${activeLesson.id}`, JSON.stringify(updated));
+                  }
+                  return updated;
+                }
+                return prev;
+              });
+
+              setNotifications(prev => [
+                {
+                  id: Date.now(),
+                  senderName: mName,
+                  courseName: course?.name || "Kurs",
+                  text: data.text || "Yangi javob keldi",
+                  time: timeStr,
+                  isRead: false
+                },
+                ...prev
+              ]);
+            }
           }
         } catch {}
       };
@@ -210,7 +223,7 @@ export default function StudentCoursePlayer() {
     return () => {
       if (socket) socket.close();
     };
-  }, [course?.name]);
+  }, [course?.name, activeLesson?.id]);
 
   const allLessons = useMemo(
     () => (course?.sections || []).flatMap((s) => s.lessons || []),
@@ -224,6 +237,7 @@ export default function StudentCoursePlayer() {
       alert("Savol matnini kiriting");
       return;
     }
+    const sId = user?.id || Date.now();
     const item: QaItem = {
       id: String(Date.now()),
       text: qaText.trim(),
@@ -235,15 +249,16 @@ export default function StudentCoursePlayer() {
     setQuestions(next);
     localStorage.setItem(`lesson-qa-${activeLesson.id}`, JSON.stringify(next));
 
-    // Send via WebSocket
+    // Send via WebSocket with studentId, studentName, courseId, courseName
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
-        type: "qa_question",
+        type: "chat_message",
+        studentId: sId,
+        studentName: user?.full_name || "O'quvchi",
         courseId: courseId,
-        lessonId: activeLesson.id,
-        questionId: item.id,
+        courseName: course?.name || "Kurs",
         text: qaText.trim(),
-        author: user?.full_name || "O'quvchi"
+        sender: "student"
       }));
     }
 

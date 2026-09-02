@@ -98,7 +98,7 @@ export default function MentorPage() {
     if (token) {
       try {
         const p = JSON.parse(atob(token.split(".")[1]));
-        setUser({ id: Number(p.id), full_name: p.full_name || "Mentor", role: p.role });
+        setUser({ id: Number(p.id || p.userId || p.sub), full_name: p.full_name || "Mentor", role: p.role });
       } catch {}
     }
   }, []);
@@ -109,10 +109,27 @@ export default function MentorPage() {
       .catch(() => setCourses([]))
       .finally(() => setLoadingCourses(false));
 
-    api.get("/student")
-      .then(res => setStudents(Array.isArray(res.data) ? res.data : (res.data?.data ?? [])))
-      .catch(() => setStudents([]))
-      .finally(() => setLoadingStudents(false));
+    // Fetch students from multiple possible backend endpoints to guarantee full coverage
+    Promise.all([
+      api.get("/student").catch(() => ({ data: [] })),
+      api.get("/users/student").catch(() => ({ data: [] })),
+      api.get("/student/my-course").catch(() => ({ data: [] }))
+    ]).then(([res1, res2, res3]) => {
+      const list1 = Array.isArray(res1.data) ? res1.data : (res1.data?.data ?? []);
+      const list2 = Array.isArray(res2.data) ? res2.data : (res2.data?.data ?? []);
+      const list3 = Array.isArray(res3.data) ? res3.data : (res3.data?.data ?? []);
+
+      const combined = [...list1, ...list2, ...list3];
+      const uniqueMap = new Map<number, Student>();
+      combined.forEach((item: any, idx: number) => {
+        const id = Number(item.id || item.userId || idx + 1);
+        if (!uniqueMap.has(id)) {
+          uniqueMap.set(id, { ...item, id });
+        }
+      });
+
+      setStudents(Array.from(uniqueMap.values()));
+    }).finally(() => setLoadingStudents(false));
 
     api.get("/homeworks")
       .then(res => setHomeworks(Array.isArray(res.data) ? res.data : []))
@@ -132,7 +149,7 @@ export default function MentorPage() {
 
   const logout = () => { localStorage.removeItem("access_token"); localStorage.removeItem("refresh_token"); window.location.href = "/login"; };
 
-  // 1. Mentor Courses Scope (Robust matching with fallback)
+  // 1. Mentor Courses Scope
   const mentorCourses = useMemo(() => {
     if (!user) return courses;
     const uid = Number(user.id);
@@ -151,7 +168,7 @@ export default function MentorPage() {
     return matched.length > 0 ? matched : courses;
   }, [courses, user]);
 
-  // 2. Mentor Students Scope (Robust matching for arrays, IDs, objects)
+  // 2. Mentor Students Scope
   const mentorStudents = useMemo(() => {
     if (students.length === 0) return [];
     if (mentorCourses.length === 0 || mentorCourses.length === courses.length) {
@@ -162,21 +179,15 @@ export default function MentorPage() {
     const mNames = new Set(mentorCourses.map(c => c.name.trim().toLowerCase()));
 
     const filtered = students.filter(s => {
-      // Check single course object
       if (s.course?.id && mIds.has(Number(s.course.id))) return true;
       if (s.course?.name && mNames.has(s.course.name.trim().toLowerCase())) return true;
-
-      // Check courseId / course_id fields
       if (s.courseId && mIds.has(Number(s.courseId))) return true;
       if (s.course_id && mIds.has(Number(s.course_id))) return true;
-
-      // Check courses array
       if (Array.isArray(s.courses) && s.courses.length > 0) {
         if (s.courses.some(c => (c.id && mIds.has(Number(c.id))) || (c.name && mNames.has(c.name.trim().toLowerCase())))) {
           return true;
         }
       }
-
       return false;
     });
 
@@ -239,7 +250,7 @@ export default function MentorPage() {
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "chat_message" || data.type === "notification") {
+          if (data.type === "chat_message" || data.type === "qa_question" || data.type === "notification") {
             handleIncomingRealtimeMessage(data);
           }
         } catch {}
@@ -261,15 +272,26 @@ export default function MentorPage() {
     };
   }, []);
 
-  const handleIncomingRealtimeMessage = (msgData: { studentId: number; studentName: string; text: string; courseName?: string }) => {
-    const sId = msgData.studentId;
+  const handleIncomingRealtimeMessage = (msgData: any) => {
+    const sId = Number(msgData.studentId || msgData.senderId || msgData.id || 101);
+    const sName = msgData.studentName || msgData.author || msgData.senderName || "O'quvchi";
+    const text = msgData.text || msgData.questionText || "";
+    const cName = msgData.courseName || "Kurs";
     const timeStr = new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
+
+    // Dynamic addition of student if not present in students list
+    setStudents(prev => {
+      if (!prev.some(s => Number(s.id) === sId)) {
+        return [...prev, { id: sId, full_name: sName, course: { name: cName }, phone: "—" }];
+      }
+      return prev;
+    });
 
     setQaMessages(prev => ({
       ...prev,
       [sId]: [
         ...(prev[sId] || []),
-        { id: Date.now(), text: msgData.text, sender: "student", senderName: msgData.studentName, time: timeStr }
+        { id: Date.now(), text, sender: "student", senderName: sName, time: timeStr }
       ]
     }));
 
@@ -277,9 +299,9 @@ export default function MentorPage() {
       {
         id: Date.now(),
         studentId: sId,
-        studentName: msgData.studentName,
-        courseName: msgData.courseName || "Kurs",
-        text: msgData.text,
+        studentName: sName,
+        courseName: cName,
+        text: text,
         time: timeStr,
         isRead: false
       },
@@ -322,6 +344,8 @@ export default function MentorPage() {
       wsRef.current.send(JSON.stringify({
         type: "chat_message",
         studentId: sId,
+        studentName: getStudentName(selectedQAStudent),
+        mentorName: user?.full_name || "Mentor",
         text: qaInput,
         sender: "mentor"
       }));
