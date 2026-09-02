@@ -104,10 +104,30 @@ export default function PaymentsTab() {
       localStorage.setItem("lms_payment_requests", JSON.stringify(updated));
       window.dispatchEvent(new Event("storage"));
 
-      await fetchStudents();
+      const foundCourse = courses.find(c => c.id === reqItem.courseId) || { id: reqItem.courseId, name: reqItem.courseName, prise: reqItem.coursePrice };
+
+      // Update students state immediately so the row stays in table as Tasdiqlangan
+      setStudents(prev => {
+        const exists = prev.some(s => s.id === reqItem.studentId);
+        if (exists) {
+          return prev.map(s => s.id === reqItem.studentId ? { ...s, isPaid: true, courseId: reqItem.courseId, course: foundCourse } : s);
+        } else {
+          return [{
+            id: reqItem.studentId,
+            full_name: reqItem.studentName,
+            phone: reqItem.studentPhone,
+            isPaid: true,
+            create_at: reqItem.createdAt || new Date().toISOString(),
+            courseId: reqItem.courseId,
+            course: foundCourse
+          }, ...prev];
+        }
+      });
+
       setPaymentRequests(prev => prev.filter(r => r.id !== reqItem.id));
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2500);
+      fetchStudents();
     } catch (e) {
       console.error(e);
       setAlert({ open: true, msg: "Tasdiqlashda xatolik yuz berdi", sev: "error" });
