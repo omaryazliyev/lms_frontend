@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Avatar, Badge, CircularProgress } from "@mui/material";
@@ -19,6 +19,7 @@ import SendOutlined from "@mui/icons-material/SendOutlined";
 import PictureAsPdfOutlined from "@mui/icons-material/PictureAsPdfOutlined";
 import InsertDriveFileOutlined from "@mui/icons-material/InsertDriveFileOutlined";
 import AssignmentOutlined from "@mui/icons-material/AssignmentOutlined";
+import DoneAllOutlined from "@mui/icons-material/DoneAllOutlined";
 import api from "../../../../api/axios";
 
 type Lesson = {
@@ -33,7 +34,16 @@ type Lesson = {
 
 type Section = { id: number; name: string; lessons: Lesson[] };
 type Course = { id: number; name: string; sections: Section[] };
-type QaItem = { id: string; text: string; author: string; createdAt: string; fileName?: string };
+type QaItem = { id: string; text: string; author: string; createdAt: string; fileName?: string; answer?: string; answerAuthor?: string; answerTime?: string };
+
+interface NotificationItem {
+  id: number;
+  senderName: string;
+  courseName: string;
+  text: string;
+  time: string;
+  isRead: boolean;
+}
 
 const SIDEBAR_BG = "rgb(13,16,23)";
 const BLUE = "#3b82f6";
@@ -78,6 +88,21 @@ export default function StudentCoursePlayer() {
   const [questions, setQuestions] = useState<QaItem[]>([]);
   const [examAnswers, setExamAnswers] = useState<Record<number, string>>({});
   const [examSubmitted, setExamSubmitted] = useState(false);
+
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    {
+      id: 1,
+      senderName: "Ali Valiyev (Mentor)",
+      courseName: "Web Dizayn",
+      text: "Savolingizga javob berildi: 'Darsdagi topshiriq to'g'ri bajarilgan'",
+      time: "11:39",
+      isRead: false
+    }
+  ]);
+
+  const wsRef = useRef<WebSocket | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -137,6 +162,65 @@ export default function StudentCoursePlayer() {
     setTab("qa");
   }, [activeLesson?.id]);
 
+  // WebSocket for Live Q&A and Real-time Notifications
+  useEffect(() => {
+    const wsUrl = "ws://3.75.176.131:8080/ws";
+    let socket: WebSocket | null = null;
+
+    try {
+      socket = new WebSocket(wsUrl);
+      wsRef.current = socket;
+
+      socket.onopen = () => {
+        setWsConnected(true);
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "qa_reply" || data.type === "notification") {
+            const timeStr = new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
+
+            if (data.questionId) {
+              setQuestions(prev => prev.map(q => q.id === data.questionId ? {
+                ...q,
+                answer: data.text,
+                answerAuthor: data.author || "Mentor",
+                answerTime: timeStr
+              } : q));
+            }
+
+            setNotifications(prev => [
+              {
+                id: Date.now(),
+                senderName: data.author || "Mentor",
+                courseName: course?.name || "Kurs",
+                text: data.text || "Savolingizga yangi javob keldi",
+                time: timeStr,
+                isRead: false
+              },
+              ...prev
+            ]);
+          }
+        } catch {}
+      };
+
+      socket.onerror = () => {
+        setWsConnected(false);
+      };
+
+      socket.onclose = () => {
+        setWsConnected(false);
+      };
+    } catch {
+      setWsConnected(false);
+    }
+
+    return () => {
+      if (socket) socket.close();
+    };
+  }, [course?.name]);
+
   const allLessons = useMemo(
     () => (course?.sections || []).flatMap((s) => s.lessons || []),
     [course]
@@ -159,6 +243,19 @@ export default function StudentCoursePlayer() {
     const next = [item, ...questions];
     setQuestions(next);
     localStorage.setItem(`lesson-qa-${activeLesson.id}`, JSON.stringify(next));
+
+    // Send via WebSocket
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: "qa_question",
+        courseId: courseId,
+        lessonId: activeLesson.id,
+        questionId: item.id,
+        text: qaText.trim(),
+        author: user?.full_name || "O'quvchi"
+      }));
+    }
+
     setQaText("");
     setQaFile(null);
     setQaOpen(false);
@@ -168,6 +265,12 @@ export default function StudentCoursePlayer() {
     if (!activeLesson) return;
     setRating(value);
     localStorage.setItem(`lesson-rating-${activeLesson.id}`, String(value));
+  };
+
+  const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
   };
 
   const examScore = useMemo(() => {
@@ -213,11 +316,56 @@ export default function StudentCoursePlayer() {
             Student
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <button style={{ width: 40, height: 40, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Badge variant="dot" color="error" sx={{ "& .MuiBadge-badge": { width: 6, height: 6, minWidth: 6 } }}>
-                <NotificationsNoneOutlined style={{ width: 20, height: 20, color: "#64748b" }} />
-              </Badge>
-            </button>
+
+            {/* NOTIFICATION BELL WITH UNREAD BADGE & DROPDOWN */}
+            <div style={{ position: "relative" }}>
+              <button onClick={() => setNotificationsOpen(p => !p)} style={{ width: 40, height: 40, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
+                <Badge badgeContent={unreadCount} color="error" sx={{ "& .MuiBadge-badge": { fontSize: 10, height: 16, minWidth: 16, fontWeight: 700 } }}>
+                  <NotificationsNoneOutlined style={{ width: 20, height: 20, color: unreadCount > 0 ? BLUE : "#64748b" }} />
+                </Badge>
+              </button>
+
+              {notificationsOpen && (
+                <>
+                  <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={() => setNotificationsOpen(false)} />
+                  <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", width: 320, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.12)", padding: "12px 0", zIndex: 50 }}>
+                    <div style={{ padding: "0 16px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>Bildirishnomalar</span>
+                        {unreadCount > 0 && <span style={{ background: "#eff6ff", color: BLUE, fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 10 }}>{unreadCount} yangi</span>}
+                      </div>
+                      {unreadCount > 0 && (
+                        <button onClick={markAllAsRead} style={{ background: "none", border: "none", color: BLUE, fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 3 }}>
+                          <DoneAllOutlined style={{ width: 14, height: 14 }} /> Barchasi o'qildi
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ maxHeight: 280, overflowY: "auto" }}>
+                      {notifications.length === 0 ? (
+                        <div style={{ padding: "24px 16px", textAlign: "center", color: "#94a3b8", fontSize: 12 }}>Bildirishnomalar yo'q</div>
+                      ) : (
+                        notifications.map(n => (
+                          <div key={n.id} onClick={() => { setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x)); setTab("qa"); setNotificationsOpen(false); }}
+                            style={{ padding: "10px 16px", display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", background: n.isRead ? "transparent" : "#eff6ff", borderBottom: "1px solid #f1f5f9", transition: "background 0.2s" }}>
+                            <Avatar sx={{ width: 32, height: 32, bgcolor: BLUE, fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{initials(n.senderName)}</Avatar>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{n.senderName}</span>
+                                <span style={{ fontSize: 10, color: "#94a3b8" }}>{n.time}</span>
+                              </div>
+                              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.text}</div>
+                            </div>
+                            {!n.isRead && <span style={{ width: 6, height: 6, borderRadius: "50%", background: BLUE, marginTop: 5, flexShrink: 0 }} />}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px 5px 5px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10 }}>
               <Avatar sx={{ width: 28, height: 28, bgcolor: BLUE, fontSize: 11, fontWeight: 700 }}>{initials(user?.full_name || "I")}</Avatar>
               <div>
@@ -345,8 +493,12 @@ export default function StudentCoursePlayer() {
                         <>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
                             <div>
-                              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#0f172a" }}>Savol va javoblar</h3>
-                              <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 6 }}>Savollar: {questions.length} ta · Javoblar: 0 ta</div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#0f172a" }}>Savol va javoblar</h3>
+                                <span style={{ width: 7, height: 7, borderRadius: "50%", background: wsConnected ? "#22c55e" : "#e53935", display: "inline-block" }} />
+                                <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>{wsConnected ? "Live WebSocket" : "Online"}</span>
+                              </div>
+                              <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 6 }}>Savollar: {questions.length} ta · Javoblar: {questions.filter(q => q.answer).length} ta</div>
                             </div>
                             <button onClick={() => setQaOpen(true)} style={{ height: 38, padding: "0 16px", background: BLUE, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                               Savol so'rash
@@ -356,13 +508,24 @@ export default function StudentCoursePlayer() {
                           {questions.length === 0 ? (
                             <div style={{ color: "#94a3b8", fontSize: 14 }}>Hali savollar yo'q. Birinchi bo'lib savol bering!</div>
                           ) : questions.map((q) => (
-                            <div key={q.id} style={{ display: "flex", gap: 12, padding: "14px 0", borderBottom: "1px solid #f1f5f9" }}>
-                              <Avatar sx={{ width: 36, height: 36, bgcolor: BLUE, fontSize: 13 }}>{initials(q.author)}</Avatar>
-                              <div>
-                                <div style={{ fontWeight: 700, color: BLUE, fontSize: 13 }}>{q.author}</div>
-                                <div style={{ fontSize: 14, color: "#0f172a", marginTop: 4 }}>{q.text}</div>
-                                <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{q.createdAt}</div>
-                                <div style={{ fontSize: 12, color: "#94a3b8" }}>Hali javob berilmagan</div>
+                            <div key={q.id} style={{ padding: "14px 0", borderBottom: "1px solid #f1f5f9" }}>
+                              <div style={{ display: "flex", gap: 12 }}>
+                                <Avatar sx={{ width: 36, height: 36, bgcolor: BLUE, fontSize: 13 }}>{initials(q.author)}</Avatar>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontWeight: 700, color: BLUE, fontSize: 13 }}>{q.author}</div>
+                                  <div style={{ fontSize: 14, color: "#0f172a", marginTop: 4 }}>{q.text}</div>
+                                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{q.createdAt}</div>
+
+                                  {q.answer ? (
+                                    <div style={{ marginTop: 10, background: "#f8fafc", borderLeft: `3px solid ${BLUE}`, padding: "10px 14px", borderRadius: "0 8px 8px 0" }}>
+                                      <div style={{ fontWeight: 700, fontSize: 12, color: "#0f172a" }}>{q.answerAuthor || "Mentor"} (Javob):</div>
+                                      <div style={{ fontSize: 13, color: "#334155", marginTop: 2 }}>{q.answer}</div>
+                                      <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>{q.answerTime}</div>
+                                    </div>
+                                  ) : (
+                                    <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Hali javob berilmagan</div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           ))}
