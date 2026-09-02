@@ -13,6 +13,8 @@ import KeyboardArrowDown from "@mui/icons-material/KeyboardArrowDown";
 import LaunchOutlined from "@mui/icons-material/LaunchOutlined";
 import ShoppingCartOutlined from "@mui/icons-material/ShoppingCartOutlined";
 import DoneAllOutlined from "@mui/icons-material/DoneAllOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import SendOutlined from "@mui/icons-material/SendOutlined";
 
 import api from "../../api/axios";
 
@@ -50,8 +52,40 @@ export default function StudentDashboard() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [likedCourses, setLikedCourses] = useState<Set<number>>(new Set());
 
-  // Notifications state
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
+  // Buy course modal state for existing logged-in students
+  const [buyModalOpen, setBuyModalOpen] = useState(false);
+  const [selectedBuyCourse, setSelectedBuyCourse] = useState<Course | null>(null);
+  const [buyRequestSent, setBuyRequestSent] = useState(false);
+
+  const handleOpenBuyModal = (course: Course) => {
+    setSelectedBuyCourse(course);
+    setBuyRequestSent(false);
+    setBuyModalOpen(true);
+  };
+
+  const handleSendPaymentRequest = () => {
+    if (!selectedBuyCourse || !user) return;
+    const newReq = {
+      id: Date.now(),
+      studentId: user.id,
+      studentName: user.full_name || "O'quvchi",
+      studentPhone: user.phone || "—",
+      courseId: selectedBuyCourse.id,
+      courseName: selectedBuyCourse.name,
+      coursePrice: selectedBuyCourse.prise,
+      status: "PENDING",
+      createdAt: new Date().toISOString(),
+    };
+    try {
+      const existing = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
+      localStorage.setItem("lms_payment_requests", JSON.stringify([newReq, ...existing]));
+      window.dispatchEvent(new Event("storage"));
+    } catch {}
+
+    setBuyRequestSent(true);
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -348,11 +382,14 @@ export default function StudentDashboard() {
                             </button>
                           </Link>
                         ) : (
-                          <Link href={`/register?courseId=${course.id}&courseName=${encodeURIComponent(course.name)}`} style={{ textDecoration: "none", marginTop: "auto" }}>
-                            <button style={{ width: "100%", height: 38, background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onMouseEnter={e => e.currentTarget.style.background = "#1e293b"} onMouseLeave={e => e.currentTarget.style.background = "#0f172a"}>
-                              <ShoppingCartOutlined style={{ width: 16, height: 16 }} /> Sotib olish
-                            </button>
-                          </Link>
+                          <button
+                            onClick={() => handleOpenBuyModal(course)}
+                            style={{ width: "100%", height: 38, background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, marginTop: "auto" }}
+                            onMouseEnter={e => e.currentTarget.style.background = "#1e293b"}
+                            onMouseLeave={e => e.currentTarget.style.background = "#0f172a"}
+                          >
+                            <ShoppingCartOutlined style={{ width: 16, height: 16 }} /> Sotib olish
+                          </button>
                         )}
                       </div>
                     </div>
@@ -363,6 +400,54 @@ export default function StudentDashboard() {
           )}
         </main>
       </div>
+
+      {/* PURCHASE MODAL FOR LOGGED-IN STUDENTS */}
+      {buyModalOpen && selectedBuyCourse && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,0.6)", backdropFilter: "blur(4px)" }} onClick={() => setBuyModalOpen(false)} />
+          <div style={{ position: "relative", width: "100%", maxWidth: 460, background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#0f172a" }}>Yangi kurs sotib olish</h2>
+              <button onClick={() => setBuyModalOpen(false)} style={{ background: "none", border: "none", cursor: "pointer" }}><CloseOutlined style={{ color: "#64748b" }} /></button>
+            </div>
+
+            <div style={{ background: "#f8fafc", borderRadius: 12, padding: 16, marginBottom: 20, border: "1px solid #e2e8f0" }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>{selectedBuyCourse.name}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#3b82f6" }}>
+                {Number(selectedBuyCourse.prise).toLocaleString("uz-UZ")} UZS
+              </div>
+            </div>
+
+            <div style={{ fontSize: 14, color: "#334155", lineHeight: 1.6, marginBottom: 20 }}>
+              Yangi kursga a'zo bo'lish uchun to'lovni amalga oshiring va adminga bog'laning. Admin to'lovni tasdiqlashi bilan ushbu kurs kabinetingizda ochiladi.
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <a
+                href="https://t.me/itlive_admin"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 42, background: "#24A1DE", color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: 14, textDecoration: "none" }}
+              >
+                ✈️ Telegram orqali adminga yozish (@itlive_admin)
+              </a>
+
+              {buyRequestSent ? (
+                <div style={{ padding: "12px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, color: "#16a34a", fontSize: 13, fontWeight: 700, textAlign: "center" }}>
+                  ✓ To'lov so'rovi adminga yuborildi! Admin tasdiqlashi bilan kursingiz faollashadi.
+                </div>
+              ) : (
+                <button
+                  onClick={handleSendPaymentRequest}
+                  style={{ height: 42, background: "#3b82f6", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                >
+                  <SendOutlined style={{ width: 16, height: 16 }} /> To'lov so'rovini adminga yuborish
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
