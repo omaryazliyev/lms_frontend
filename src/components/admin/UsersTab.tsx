@@ -381,39 +381,6 @@ export default function UsersTab({ activeSubItem }: { activeSubItem: string }) {
           Qo'shish
         </button>
       </div>
-      {/* PENDING PAYMENT REQUESTS FOR NEW COURSES */}
-      {paymentRequests.length > 0 && (
-        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 14, padding: 18, marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 16 }}>💳</span>
-              <span style={{ fontSize: 15, fontWeight: 800, color: "#1e3a8a" }}>Yangi Kurs To'lov So'rovlari ({paymentRequests.length})</span>
-            </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#3b82f6", background: "#dbeafe", padding: "2px 8px", borderRadius: 10 }}>Kutilmoqda</span>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {paymentRequests.map((req) => (
-              <div key={req.id} style={{ background: "#fff", borderRadius: 10, border: "1px solid #cbd5e1", padding: 12, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{req.studentName} ({req.studentPhone})</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
-                    Kurs: <strong style={{ color: "#3b82f6" }}>{req.courseName}</strong> • Narxi: <strong>{Number(req.coursePrice).toLocaleString("uz-UZ")} UZS</strong>
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={() => handleApprovePayment(req)}
-                    style={{ background: "#22c55e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <CheckOutlined style={{ width: 14, height: 14 }} /> Tasdiqlash (Kursni berish)
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div style={{
         background: "#fff", borderRadius: 14,

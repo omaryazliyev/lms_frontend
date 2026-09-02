@@ -74,10 +74,45 @@ export default function PaymentsTab() {
     }
   }, []);
 
+  const [paymentRequests, setPaymentRequests] = useState<any[]>([]);
+
+  const loadPaymentRequests = () => {
+    try {
+      const raw = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
+      setPaymentRequests(raw.filter((r: any) => r.status === "PENDING"));
+    } catch {}
+  };
+
   useEffect(() => {
     fetchStudents();
     fetchCourses();
+    loadPaymentRequests();
+    const handleStorage = () => loadPaymentRequests();
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, [fetchStudents, fetchCourses]);
+
+  const handleApprovePaymentRequest = async (reqItem: any) => {
+    try {
+      if (reqItem.courseId && reqItem.studentId) {
+        await api.patch(`/student/${reqItem.studentId}/assign-course`, { courseId: reqItem.courseId }).catch(() => {});
+        await api.patch(`/student/${reqItem.studentId}/toggle-paid`).catch(() => {});
+      }
+
+      const raw = JSON.parse(localStorage.getItem("lms_payment_requests") || "[]");
+      const updated = raw.map((r: any) => r.id === reqItem.id ? { ...r, status: "APPROVED" } : r);
+      localStorage.setItem("lms_payment_requests", JSON.stringify(updated));
+      window.dispatchEvent(new Event("storage"));
+
+      await fetchStudents();
+      setPaymentRequests(prev => prev.filter(r => r.id !== reqItem.id));
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2500);
+    } catch (e) {
+      console.error(e);
+      setAlert({ open: true, msg: "Tasdiqlashda xatolik yuz berdi", sev: "error" });
+    }
+  };
 
   const handleTogglePaid = async (student: Student) => {
     setTogglingId(student.id);
@@ -170,6 +205,42 @@ export default function PaymentsTab() {
           <span>To'lovlar</span>
         </div>
       </div>
+
+      {/* PENDING PAYMENT REQUESTS FOR NEW COURSES */}
+      {paymentRequests.length > 0 && (
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 14, padding: 18, marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 18 }}>💳</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: "#1e3a8a" }}>Yangi Kurs To'lov So'rovlari ({paymentRequests.length})</span>
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#3b82f6", background: "#dbeafe", padding: "3px 10px", borderRadius: 20 }}>Kutilmoqda</span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {paymentRequests.map((req) => (
+              <div key={req.id} style={{ background: "#fff", borderRadius: 10, border: "1px solid #cbd5e1", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{req.studentName} ({req.studentPhone})</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 3 }}>
+                    Kurs: <strong style={{ color: "#3b82f6" }}>{req.courseName}</strong> • Narxi: <strong>{Number(req.coursePrice).toLocaleString("uz-UZ")} UZS</strong>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => handleApprovePaymentRequest(req)}
+                    style={{ background: "#22c55e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 2px 6px rgba(34,197,94,0.25)" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#16a34a"}
+                    onMouseLeave={e => e.currentTarget.style.background = "#22c55e"}
+                  >
+                    <CheckCircleOutlined style={{ width: 15, height: 15 }} /> Tasdiqlash (Kursni berish)
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 12 }}>
