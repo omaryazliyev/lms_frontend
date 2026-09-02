@@ -17,6 +17,7 @@ import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import SendOutlined from "@mui/icons-material/SendOutlined";
 import DoneAllOutlined from "@mui/icons-material/DoneAllOutlined";
 import api from "../../api/axios";
+import SectionsTab from "../../components/admin/SectionsTab";
 
 const SIDEBAR_BG = "rgb(13,16,23)";
 const ACCENT = "#3b82f6";
@@ -81,6 +82,7 @@ export default function MentorPage() {
   const [studentSearch, setStudentSearch] = useState("");
 
   const [selectedQAStudent, setSelectedQAStudent] = useState<Student | null>(null);
+  const [selectedCourseForView, setSelectedCourseForView] = useState<Course | null>(null);
   const [qaMessages, setQaMessages] = useState<Record<number, QAMessage[]>>({});
   const [qaInput, setQaInput] = useState("");
   const [qaSearch, setQaSearch] = useState("");
@@ -762,31 +764,38 @@ export default function MentorPage() {
 
           {/* MENING KURSLARIM */}
           {activeTab === "courses" && (
-            <div>
-              <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>Mening kurslarim</h1>
-              <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 20px" }}>Materiallar &bull; Mening kurslarim</p>
-              <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead><tr style={{ background: "#f8fafc" }}>{["BANNER","KURS NOMI","DARAJASI","NARXI","KATEGORIYA","HOLATI","AMALLAR"].map(h => <th key={h} style={{ padding: "10px 16px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textAlign: "left", letterSpacing: "0.05em" }}>{h}</th>)}</tr></thead>
-                  <tbody>
-                    {loadingCourses ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 32 }}><CircularProgress size={28} style={{ color: ACCENT }} /></td></tr>
-                    : mentorCourses.length === 0 ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>Kurslar mavjud emas</td></tr>
-                    : mentorCourses.map((c: Course) => (
-                      <tr key={c.id} style={{ borderTop: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "12px 16px" }}><div style={{ width: 44, height: 44, borderRadius: 8, background: "#f1f5f9", overflow: "hidden" }}>{c.banner ? <img src={`/api/v1/uploads/images/${c.banner}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📚</div>}</div></td>
-                        <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 13, fontWeight: 700, color: ACCENT, cursor: "pointer" }}>{c.name}</span></td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{c.level}</td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{Number(c.prise).toLocaleString("uz-UZ")}</td>
-                        <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, color: ACCENT, fontWeight: 600 }}>{c.category?.name || "—"}</span></td>
-                        <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, fontWeight: 600, color: c.isActive ? "#16a34a" : "#64748b", background: c.isActive ? "#f0fdf4" : "#f8fafc", padding: "3px 10px", borderRadius: 20, border: `1px solid ${c.isActive ? "#bbf7d0" : "#e2e8f0"}` }}>{c.isActive ? "Faol" : "Nofaol"}</span></td>
-                        <td style={{ padding: "12px 16px" }}><button style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}><VisibilityOutlined style={{ width: 18, height: 18 }} /></button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div style={{ padding: "12px 16px", borderTop: "1px solid #f1f5f9", fontSize: 12, color: "#94a3b8" }}>Jami {mentorCourses.length} ta kurs</div>
+            selectedCourseForView ? (
+              <SectionsTab
+                course={selectedCourseForView}
+                onBack={() => setSelectedCourseForView(null)}
+              />
+            ) : (
+              <div>
+                <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>Mening kurslarim</h1>
+                <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 20px" }}>Materiallar &bull; Mening kurslarim</p>
+                <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead><tr style={{ background: "#f8fafc" }}>{["BANNER","KURS NOMI","DARAJASI","NARXI","KATEGORIYA","HOLATI","AMALLAR"].map(h => <th key={h} style={{ padding: "10px 16px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textAlign: "left", letterSpacing: "0.05em" }}>{h}</th>)}</tr></thead>
+                    <tbody>
+                      {loadingCourses ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 32 }}><CircularProgress size={28} style={{ color: ACCENT }} /></td></tr>
+                      : mentorCourses.length === 0 ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>Kurslar mavjud emas</td></tr>
+                      : mentorCourses.map((c: Course) => (
+                        <tr key={c.id} style={{ borderTop: "1px solid #f1f5f9", cursor: "pointer" }} onClick={() => setSelectedCourseForView(c)}>
+                          <td style={{ padding: "12px 16px" }}><div style={{ width: 44, height: 44, borderRadius: 8, background: "#f1f5f9", overflow: "hidden" }}>{c.banner ? <img src={`/api/v1/uploads/images/${c.banner}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📚</div>}</div></td>
+                          <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 13, fontWeight: 700, color: ACCENT, cursor: "pointer" }}>{c.name}</span></td>
+                          <td style={{ padding: "12px 16px", fontSize: 13, color: "#475569" }}>{c.level}</td>
+                          <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700 }}>{Number(c.prise).toLocaleString("uz-UZ")}</td>
+                          <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, color: ACCENT, fontWeight: 600 }}>{c.category?.name || "—"}</span></td>
+                          <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 12, fontWeight: 600, color: c.isActive ? "#16a34a" : "#64748b", background: c.isActive ? "#f0fdf4" : "#f8fafc", padding: "3px 10px", borderRadius: 20, border: `1px solid ${c.isActive ? "#bbf7d0" : "#e2e8f0"}` }}>{c.isActive ? "Faol" : "Nofaol"}</span></td>
+                          <td style={{ padding: "12px 16px" }}><button onClick={(e) => { e.stopPropagation(); setSelectedCourseForView(c); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}><VisibilityOutlined style={{ width: 18, height: 18 }} /></button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div style={{ padding: "12px 16px", borderTop: "1px solid #f1f5f9", fontSize: 12, color: "#94a3b8" }}>Jami {mentorCourses.length} ta kurs</div>
+                </div>
               </div>
-            </div>
+            )
           )}
 
           {/* SAVOL-JAVOBLAR */}
