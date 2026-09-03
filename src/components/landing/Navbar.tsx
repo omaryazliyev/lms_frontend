@@ -44,7 +44,7 @@ export default function Navbar({ solid = false }: { solid?: boolean }) {
           Asosiy
         </Link>
         
-        <Link href="/#courses" style={{
+        <Link href="/courses" style={{
           textDecoration: "none",
           color: isCourses ? "#0f172a" : "#475569",
           fontWeight: isCourses ? 600 : 500,
